@@ -24,7 +24,7 @@ def test_health_endpoint(client):
     data = resp.json()
     assert "app" in data
     assert data["app"] == "ok"
-    assert "vllm" in data
+    assert "inference" in data
 
 
 def test_dashboard_loads(client):

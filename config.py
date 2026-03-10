@@ -14,8 +14,58 @@ DATA_DIR.mkdir(exist_ok=True)
 VIDEOS_DIR.mkdir(exist_ok=True)
 RESULTS_DIR.mkdir(exist_ok=True)
 
-# --- vLLM / Qwen3-VL ---
-VLLM_MODEL_NAME = os.getenv("VLLM_MODEL_NAME", "Qwen/Qwen3-VL-8B-Instruct")
+# --- Inference provider ---
+# Set INFERENCE_PROVIDER to switch between local vLLM and cloud APIs.
+# Options: "vllm", "fireworks", "together", "openrouter", "dashscope"
+INFERENCE_PROVIDER = os.getenv("INFERENCE_PROVIDER", "fireworks")
+
+# Cloud API key (used by all cloud providers)
+INFERENCE_API_KEY = os.getenv("INFERENCE_API_KEY", "")
+
+# Provider-specific configuration
+PROVIDERS = {
+    "vllm": {
+        "base_url": os.getenv("VLLM_BASE_URL", "http://localhost:8000/v1"),
+        "model": os.getenv("VLLM_MODEL_NAME", "Qwen/Qwen3-VL-8B-Instruct"),
+        "api_key": "EMPTY",
+        "supports_video_url": True,
+    },
+    "fireworks": {
+        "base_url": "https://api.fireworks.ai/inference/v1",
+        "model": os.getenv("FIREWORKS_MODEL", "accounts/fireworks/models/qwen3-vl-8b-instruct"),
+        "api_key": os.getenv("INFERENCE_API_KEY", ""),
+        "supports_video_url": False,
+    },
+    "together": {
+        "base_url": "https://api.together.xyz/v1",
+        "model": os.getenv("TOGETHER_MODEL", "Qwen/Qwen3-VL-32B-Instruct"),
+        "api_key": os.getenv("INFERENCE_API_KEY", ""),
+        "supports_video_url": False,
+    },
+    "openrouter": {
+        "base_url": "https://openrouter.ai/api/v1",
+        "model": os.getenv("OPENROUTER_MODEL", "qwen/qwen3-vl-8b-instruct"),
+        "api_key": os.getenv("INFERENCE_API_KEY", ""),
+        "supports_video_url": False,
+    },
+    "dashscope": {
+        "base_url": os.getenv("DASHSCOPE_BASE_URL", "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"),
+        "model": os.getenv("DASHSCOPE_MODEL", "qwen3-vl-8b-instruct"),
+        "api_key": os.getenv("INFERENCE_API_KEY", ""),
+        "supports_video_url": True,
+    },
+}
+
+
+def get_provider_config() -> dict:
+    """Return the active provider's configuration."""
+    provider = PROVIDERS.get(INFERENCE_PROVIDER)
+    if not provider:
+        raise ValueError(f"Unknown provider: {INFERENCE_PROVIDER}. Choose from: {list(PROVIDERS.keys())}")
+    return provider
+
+
+# --- vLLM local server (only used when INFERENCE_PROVIDER=vllm) ---
 VLLM_HOST = os.getenv("VLLM_HOST", "0.0.0.0")
 VLLM_PORT = int(os.getenv("VLLM_PORT", "8000"))
 VLLM_GPU_MEMORY_UTILIZATION = float(os.getenv("VLLM_GPU_MEMORY_UTIL", "0.85"))

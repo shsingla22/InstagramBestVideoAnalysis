@@ -15,13 +15,14 @@ from fastapi.templating import Jinja2Templates
 from config import (
     APP_HOST,
     APP_PORT,
+    INFERENCE_PROVIDER,
     INSTAGRAM_CREATORS,
     MAX_VIDEO_SIZE_MB,
     RESULTS_DIR,
     VIDEOS_DIR,
 )
 from server.video_processor import extract_frames, frames_to_base64, get_video_metadata
-from server.vllm_client import analyze_video_frames, check_vllm_health
+from server.inference_client import analyze_video_frames, check_health
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -37,8 +38,8 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 # ── Health ───────────────────────────────────────────────────────────
 @app.get("/health")
 async def health():
-    vllm_status = await check_vllm_health()
-    return {"app": "ok", "vllm": vllm_status}
+    inference_status = await check_health()
+    return {"app": "ok", "inference": inference_status}
 
 
 # ── Dashboard ────────────────────────────────────────────────────────

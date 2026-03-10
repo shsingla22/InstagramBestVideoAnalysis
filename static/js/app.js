@@ -1,16 +1,18 @@
 // --- Health check ---
 async function checkHealth() {
-  const dot = document.getElementById("vllm-dot");
-  const text = document.getElementById("vllm-status-text");
+  const dot = document.getElementById("inference-dot");
+  const text = document.getElementById("inference-status-text");
   try {
     const resp = await fetch("/health");
     const data = await resp.json();
-    if (data.vllm && data.vllm.status === "healthy") {
+    const inf = data.inference;
+    if (inf && inf.status === "healthy") {
       dot.className = "dot green";
-      text.textContent = "vLLM is running";
+      text.textContent = `Connected: ${inf.provider} / ${inf.model}`;
     } else {
       dot.className = "dot red";
-      text.textContent = "vLLM is not reachable — start it to enable analysis";
+      const provider = inf ? inf.provider : "unknown";
+      text.textContent = `${provider} not reachable — check API key or start server`;
     }
   } catch {
     dot.className = "dot red";

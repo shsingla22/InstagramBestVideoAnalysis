@@ -9,11 +9,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from config import (
     BASE_DIR,
     DATA_DIR,
+    INFERENCE_PROVIDER,
     INSTAGRAM_CREATORS,
+    PROVIDERS,
     RESULTS_DIR,
     VIDEOS_DIR,
-    VLLM_MODEL_NAME,
     VIDEO_ANALYSIS_PROMPT,
+    get_provider_config,
 )
 
 
@@ -23,8 +25,17 @@ def test_directories_exist():
     assert RESULTS_DIR.exists()
 
 
-def test_model_name():
-    assert "Qwen" in VLLM_MODEL_NAME
+def test_provider_config():
+    cfg = get_provider_config()
+    assert "base_url" in cfg
+    assert "model" in cfg
+    assert "api_key" in cfg
+    assert "supports_video_url" in cfg
+
+
+def test_all_providers_defined():
+    for name in ("vllm", "fireworks", "together", "openrouter", "dashscope"):
+        assert name in PROVIDERS
 
 
 def test_creators_list():
