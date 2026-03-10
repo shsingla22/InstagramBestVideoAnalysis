@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Instagram Reel Analyzer</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <header>
+    <h1>Instagram Reel Analyzer</h1>
+    <p class="subtitle">Powered by Qwen3-VL via vLLM &mdash; Discover what makes reels go viral</p>
+  </header>
+
+  <main>
+    <!-- Status bar -->
+    <section class="card" id="status-card">
+      <h2>System Status</h2>
+      <div id="status-indicator">
+        <span class="dot" id="vllm-dot"></span>
+        <span id="vllm-status-text">Checking vLLM...</span>
+      </div>
+    </section>
+
+    <!-- Upload -->
+    <section class="card">
+      <h2>Analyze a Reel</h2>
+      <form id="upload-form" enctype="multipart/form-data">
+        <div class="upload-area" id="drop-zone">
+          <p>Drag &amp; drop a video here, or <label for="file-input" class="link">browse</label></p>
+          <input type="file" id="file-input" name="file" accept="video/*" hidden>
+        </div>
+        <button type="submit" id="analyze-btn" disabled>Analyze Video</button>
+        <div id="progress-bar" hidden><div id="progress-fill"></div></div>
+        <p id="upload-status"></p>
+      </form>
+    </section>
+
+    <!-- Stats overview -->
+    <section class="card">
+      <h2>Analysis Overview</h2>
+      <div class="stats-grid">
+        <div class="stat-box">
+          <span class="stat-number">{{ stats.total_analyzed }}</span>
+          <span class="stat-label">Videos Analyzed</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-number">{{ stats.avg_virality }}</span>
+          <span class="stat-label">Avg Virality Score</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-number">{{ stats.top_hooks|length }}</span>
+          <span class="stat-label">Hook Types Found</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-number">{{ stats.top_emotions|length }}</span>
+          <span class="stat-label">Emotion Triggers</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Top hooks & emotions -->
+    {% if stats.top_hooks %}
+    <section class="card">
+      <h2>Top Patterns</h2>
+      <div class="two-col">
+        <div>
+          <h3>Hook Types</h3>
+          <ul class="tag-list">
+            {% for hook, count in stats.top_hooks %}
+            <li><span class="tag">{{ hook }}</span> <span class="count">x{{ count }}</span></li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div>
+          <h3>Emotional Triggers</h3>
+          <ul class="tag-list">
+            {% for emotion, count in stats.top_emotions %}
+            <li><span class="tag emotion">{{ emotion }}</span> <span class="count">x{{ count }}</span></li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </section>
+    {% endif %}
+
+    <!-- Creators being tracked -->
+    <section class="card">
+      <h2>Tracked Creators ({{ creators|length }})</h2>
+      <div class="creator-grid">
+        {% for c in creators %}
+        <div class="creator-chip">
+          <strong>{{ c.handle }}</strong>
+          <span class="niche">{{ c.niche }}</span>
+          <span class="followers">{{ c.followers }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Recent results -->
+    <section class="card">
+      <h2>Recent Analyses</h2>
+      <div id="results-list">
+        {% if results %}
+          {% for r in results %}
+          <div class="result-item">
+            <div class="result-header">
+              <strong>{{ r.filename }}</strong>
+              <span class="timestamp">{{ r.analyzed_at[:19] }}</span>
+              {% if r.analysis %}
+              <span class="virality-badge v{{ r.analysis.virality_score }}">
+                Virality: {{ r.analysis.virality_score }}/10
+              </span>
+              {% endif %}
+            </div>
+            {% if r.analysis %}
+            <div class="result-details">
+              <div class="detail-row">
+                <span class="label">Hook:</span> {{ r.analysis.hook_type }}
+                ({{ r.analysis.hook_strength }}/10)
+              </div>
+              <div class="detail-row">
+                <span class="label">Format:</span> {{ r.analysis.content_format }}
+              </div>
+              <div class="detail-row">
+                <span class="label">Emotion:</span> {{ r.analysis.emotional_trigger }}
+              </div>
+              <div class="detail-row">
+                <span class="label">Pacing:</span> {{ r.analysis.pacing }}
+              </div>
+              <div class="detail-row">
+                <span class="label">Summary:</span> {{ r.analysis.summary }}
+              </div>
+              {% if r.analysis.virality_reasons %}
+              <div class="detail-row">
+                <span class="label">Why it could go viral:</span>
+                <ul>
+                  {% for reason in r.analysis.virality_reasons %}
+                  <li>{{ reason }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+              {% endif %}
+            </div>
+            {% else %}
+            <p class="muted">Analysis returned non-structured response.</p>
+            {% endif %}
+          </div>
+          {% endfor %}
+        {% else %}
+          <p class="muted">No videos analyzed yet. Upload a reel above to get started.</p>
+        {% endif %}
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Instagram Reel Analyzer &mdash; Qwen3-VL + vLLM</p>
+  </footer>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
