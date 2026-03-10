@@ -136,7 +136,9 @@ def _load_all_results() -> list[dict]:
     results = []
     for p in sorted(RESULTS_DIR.glob("*.json"), reverse=True):
         try:
-            results.append(json.loads(p.read_text()))
+            data = json.loads(p.read_text())
+            if isinstance(data, dict):
+                results.append(data)
         except Exception:
             continue
     return results

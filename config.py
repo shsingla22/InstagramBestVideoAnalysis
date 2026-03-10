@@ -62,7 +62,7 @@ PROVIDERS = {
     # ── Free providers ──────────────────────────────────────────────
     "openrouter_free": {
         "base_url": "https://openrouter.ai/api/v1",
-        "model": os.getenv("OPENROUTER_FREE_MODEL", "qwen/qwen3-vl-235b-a22b-thinking:free"),
+        "model": os.getenv("OPENROUTER_FREE_MODEL", "qwen/qwen3-vl-235b-a22b-thinking"),
         "api_key": os.getenv("INFERENCE_API_KEY", ""),
         "supports_video_url": False,
     },

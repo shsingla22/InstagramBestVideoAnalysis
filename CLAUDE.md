@@ -28,7 +28,7 @@ This project analyzes Instagram Reels using vision-language models to identify p
 ### Module 3 — Free Cloud APIs (no GPU, no payment)
 - **Provider keys**: `openrouter_free`, `groq`, `huggingface`
 - **Models**:
-  - OpenRouter Free: `qwen/qwen3-vl-235b-a22b-thinking:free` (Qwen3-VL 235B MoE, $0, 20 req/min, 200/day)
+  - OpenRouter Free: `qwen/qwen3-vl-235b-a22b-thinking` (Qwen3-VL 235B MoE, $0, 20 req/min, 200/day)
   - Groq: `meta-llama/llama-4-scout-17b-16e-instruct` (Llama 4 Scout, $0, 30 req/min, ~460 tok/s)
   - HuggingFace: `Qwen/Qwen2.5-VL-7B-Instruct` (free tier, rate-limited)
 - **Requires**: Free account signup only — no credit card
@@ -52,7 +52,7 @@ This project analyzes Instagram Reels using vision-language models to identify p
 | Together AI | 2 (Paid) | `Qwen/Qwen3-VL-32B-Instruct` | ~$0.50/M | No |
 | OpenRouter | 2 (Paid) | `qwen/qwen3-vl-8b-instruct` | ~$0.08/M | No |
 | DashScope | 2 (Paid) | `qwen3-vl-8b-instruct` | Pay-per-use | Yes |
-| **OpenRouter Free** | 3 (Free) | `qwen/qwen3-vl-235b-a22b-thinking:free` | **$0** | No |
+| **OpenRouter Free** | 3 (Free) | `qwen/qwen3-vl-235b-a22b-thinking` | **$0** | No |
 | **Groq** | 3 (Free) | `meta-llama/llama-4-scout-17b-16e-instruct` | **$0** | No |
 | **HuggingFace** | 3 (Free) | `Qwen/Qwen2.5-VL-7B-Instruct` | **$0** | No |
 

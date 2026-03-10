@@ -107,7 +107,7 @@
           <div class="result-item">
             <div class="result-header">
               <strong>{{ r.filename }}</strong>
-              <span class="timestamp">{{ r.analyzed_at[:19] }}</span>
+              <span class="timestamp">{{ r.get('analyzed_at', '')[:19] if r.get('analyzed_at') else '' }}</span>
               {% if r.analysis %}
               <span class="virality-badge v{{ r.analysis.virality_score }}">
                 Virality: {{ r.analysis.virality_score }}/10
