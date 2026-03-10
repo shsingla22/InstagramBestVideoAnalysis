@@ -16,8 +16,12 @@ RESULTS_DIR.mkdir(exist_ok=True)
 
 # --- Inference provider ---
 # Set INFERENCE_PROVIDER to switch between local vLLM and cloud APIs.
-# Options: "vllm", "fireworks", "together", "openrouter", "dashscope"
-INFERENCE_PROVIDER = os.getenv("INFERENCE_PROVIDER", "fireworks")
+# Options: "vllm", "fireworks", "together", "openrouter", "dashscope",
+#          "openrouter_free", "huggingface"
+# FREE options (no payment required):
+#   "openrouter_free" — $0 Qwen3-VL-235B via OpenRouter (20 req/min, 200/day)
+#   "huggingface"     — free tier via HuggingFace Inference API
+INFERENCE_PROVIDER = os.getenv("INFERENCE_PROVIDER", "openrouter_free")
 
 # Cloud API key (used by all cloud providers)
 INFERENCE_API_KEY = os.getenv("INFERENCE_API_KEY", "")
@@ -53,6 +57,19 @@ PROVIDERS = {
         "model": os.getenv("DASHSCOPE_MODEL", "qwen3-vl-8b-instruct"),
         "api_key": os.getenv("INFERENCE_API_KEY", ""),
         "supports_video_url": True,
+    },
+    # ── Free providers ──────────────────────────────────────────────
+    "openrouter_free": {
+        "base_url": "https://openrouter.ai/api/v1",
+        "model": os.getenv("OPENROUTER_FREE_MODEL", "qwen/qwen3-vl-235b-a22b-thinking:free"),
+        "api_key": os.getenv("INFERENCE_API_KEY", ""),
+        "supports_video_url": False,
+    },
+    "huggingface": {
+        "base_url": "https://router.huggingface.co/v1",
+        "model": os.getenv("HF_MODEL", "Qwen/Qwen2.5-VL-7B-Instruct"),
+        "api_key": os.getenv("HF_TOKEN", os.getenv("INFERENCE_API_KEY", "")),
+        "supports_video_url": False,
     },
 }
 

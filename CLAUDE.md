@@ -18,12 +18,20 @@ This project analyzes Instagram Reels using Qwen3-VL (a vision-language model) t
 - `templates/dashboard.html` — Jinja2 dashboard
 - `.env.example` — template for API keys and provider selection
 
-## Running (Cloud — no GPU needed)
+## Running (Free — no GPU, no payment)
 ```bash
-cp .env.example .env         # edit with your API key
-export INFERENCE_PROVIDER=fireworks
-export INFERENCE_API_KEY=your-key
+cp .env.example .env
+# Sign up at https://openrouter.ai (free), paste API key:
+export INFERENCE_PROVIDER=openrouter_free
+export INFERENCE_API_KEY=your-openrouter-key
 ./scripts/start_app.sh       # web dashboard at http://localhost:8080
+```
+
+## Running (Paid cloud — higher limits)
+```bash
+export INFERENCE_PROVIDER=fireworks   # or: together, openrouter, dashscope
+export INFERENCE_API_KEY=your-key
+./scripts/start_app.sh
 ```
 
 ## Running (Local vLLM — needs GPU)
@@ -33,14 +41,16 @@ export INFERENCE_PROVIDER=vllm
 ./scripts/start_app.sh
 ```
 
-## Cloud Providers
-| Provider | Model ID | Video URL Support |
-|----------|----------|-------------------|
-| Fireworks AI | `accounts/fireworks/models/qwen3-vl-8b-instruct` | No (use frames) |
-| Together AI | `Qwen/Qwen3-VL-32B-Instruct` | No (use frames) |
-| OpenRouter | `qwen/qwen3-vl-8b-instruct` | No (use frames) |
-| DashScope | `qwen3-vl-8b-instruct` | Yes (native) |
-| Local vLLM | `Qwen/Qwen3-VL-8B-Instruct` | Yes (native) |
+## All Providers
+| Provider | Model ID | Cost | Video URL |
+|----------|----------|------|-----------|
+| **OpenRouter Free** | `qwen/qwen3-vl-235b-a22b-thinking:free` | **$0** | No |
+| **HuggingFace** | `Qwen/Qwen2.5-VL-7B-Instruct` | **$0** | No |
+| Fireworks AI | `accounts/fireworks/models/qwen3-vl-8b-instruct` | Paid | No |
+| Together AI | `Qwen/Qwen3-VL-32B-Instruct` | Paid | No |
+| OpenRouter | `qwen/qwen3-vl-8b-instruct` | Paid | No |
+| DashScope | `qwen3-vl-8b-instruct` | Paid | Yes |
+| Local vLLM | `Qwen/Qwen3-VL-8B-Instruct` | Free (GPU) | Yes |
 
 ## Testing
 ```bash
