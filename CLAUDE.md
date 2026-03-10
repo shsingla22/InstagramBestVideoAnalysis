@@ -32,10 +32,14 @@ python3 -m pytest tests/ -v   # 17 tests, all pass
 ```
 
 ## Model Notes
-- Qwen3-VL-8B-Instruct needs ~20 GB VRAM at fp16
-- For larger scale: Qwen3-VL-72B needs ~150 GB (multi-GPU)
-- vLLM supports Qwen3-VL natively since v0.8.0
+- Qwen3-VL-8B-Instruct needs ~20-24 GB VRAM at fp16
+- Available sizes: 2B, 4B, 8B, 32B (dense) + 30B-A3B, 235B-A22B (MoE)
+- All have -Instruct, -Thinking, -FP8, -GGUF variants
+- vLLM >= 0.11.0 required (native `video_url` support + frame-based)
+- `qwen-vl-utils==0.0.14` needed alongside vLLM
+- Two inference paths in vllm_client.py: `analyze_video_frames()` (manual frames) and `analyze_video_native()` (video_url)
 - The analysis prompt outputs structured JSON with virality scoring
+- Set `OMP_NUM_THREADS=1` to avoid CPU contention with vLLM
 
 ## Systemd
 ```bash

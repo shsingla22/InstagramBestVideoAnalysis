@@ -51,18 +51,32 @@ We track **15 top-performing creators** across diverse niches to ensure broad pa
 | Component | Technology | Purpose |
 |-----------|-----------|---------|
 | Model | Qwen3-VL-8B-Instruct | Vision-language model for video understanding |
-| Inference Server | vLLM v0.8+ | High-throughput GPU inference with OpenAI-compatible API |
+| Inference Server | vLLM v0.11+ | High-throughput GPU inference with OpenAI-compatible API (native video_url support) |
 | Application Server | FastAPI + Uvicorn | REST API + HTML dashboard |
 | Video Processing | OpenCV + Pillow | Frame extraction, resize, base64 encoding |
 | Frontend | Vanilla HTML/CSS/JS | Upload UI, stats dashboard, results viewer |
 | Process Management | systemd | Auto-start, restart on failure, logging |
+
+### Available Qwen3-VL Model Sizes
+
+| Model | Type | HuggingFace ID | VRAM (FP16) |
+|-------|------|---------------|-------------|
+| 2B | Dense | `Qwen/Qwen3-VL-2B-Instruct` | ~5-6 GB |
+| 4B | Dense | `Qwen/Qwen3-VL-4B-Instruct` | ~10-16 GB |
+| **8B** | **Dense** | **`Qwen/Qwen3-VL-8B-Instruct`** | **~20-24 GB** |
+| 32B | Dense | `Qwen/Qwen3-VL-32B-Instruct` | ~65 GB |
+| 30B-A3B | MoE | `Qwen/Qwen3-VL-30B-A3B-Instruct` | ~60 GB |
+| 235B-A22B | MoE | `Qwen/Qwen3-VL-235B-A22B-Instruct` | ~470 GB |
+
+All models also come in `-Thinking` (reasoning-enhanced), `-FP8`, and `-GGUF` variants.
 
 ### Model Selection: Why Qwen3-VL-8B-Instruct?
 
 - **Native video understanding**: Processes multiple frames with temporal awareness
 - **Structured output**: Reliably generates JSON when prompted
 - **Size/quality tradeoff**: 8B parameters fits on a single 24GB GPU while delivering strong visual analysis
-- **vLLM support**: First-class support since vLLM v0.8.0, including PagedAttention for efficient batching
+- **vLLM support**: First-class support since vLLM v0.11.0, including PagedAttention for efficient batching and native `video_url` input
+- **Two inference modes**: Frame-based (OpenCV extracts 16 frames) or native video_url (vLLM samples at 2fps internally)
 
 ---
 

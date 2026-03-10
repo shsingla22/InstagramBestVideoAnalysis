@@ -26,6 +26,7 @@ async def check_vllm_health() -> dict:
 async def analyze_video_frames(base64_frames: list[str], custom_prompt: str | None = None) -> dict:
     """Send base64-encoded video frames to Qwen3-VL via the vLLM OpenAI-compatible API.
 
+    Sends frames as individual images in a multi-image chat completion request.
     Returns the parsed JSON analysis or raw text on parse failure.
     """
     prompt = custom_prompt or VIDEO_ANALYSIS_PROMPT
@@ -54,10 +55,46 @@ async def analyze_video_frames(base64_frames: list[str], custom_prompt: str | No
         data = resp.json()
 
     raw_text = data["choices"][0]["message"]["content"]
+    return _parse_analysis(raw_text)
 
-    # Try to parse as JSON
+
+async def analyze_video_native(video_base64: str, custom_prompt: str | None = None) -> dict:
+    """Send a full video as base64 to Qwen3-VL using vLLM's native video_url support.
+
+    Requires vLLM >= 0.11.0. The server handles frame sampling internally
+    (default: 2 fps with do_sample_frames=True).
+    """
+    prompt = custom_prompt or VIDEO_ANALYSIS_PROMPT
+
+    content = [
+        {
+            "type": "video_url",
+            "video_url": {"url": f"data:video/mp4;base64,{video_base64}"},
+        },
+        {"type": "text", "text": prompt},
+    ]
+
+    payload = {
+        "model": VLLM_MODEL_NAME,
+        "messages": [
+            {"role": "user", "content": content},
+        ],
+        "max_tokens": 2048,
+        "temperature": 0.2,
+    }
+
+    async with httpx.AsyncClient(timeout=180) as client:
+        resp = await client.post(f"{VLLM_BASE_URL}/v1/chat/completions", json=payload)
+        resp.raise_for_status()
+        data = resp.json()
+
+    raw_text = data["choices"][0]["message"]["content"]
+    return _parse_analysis(raw_text)
+
+
+def _parse_analysis(raw_text: str) -> dict:
+    """Try to parse model output as JSON."""
     try:
-        # Strip markdown code fences if present
         cleaned = raw_text.strip()
         if cleaned.startswith("```"):
             cleaned = cleaned.split("\n", 1)[1]

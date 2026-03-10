@@ -15,8 +15,9 @@ echo "Port:   $PORT"
 echo "TP:     $TP"
 echo "GPU %:  $GPU_UTIL"
 
-exec python3 -m vllm.entrypoints.openai.api_server \
-    --model "$MODEL" \
+export OMP_NUM_THREADS=1  # Avoid CPU contention with vLLM
+
+exec vllm serve "$MODEL" \
     --port "$PORT" \
     --host 0.0.0.0 \
     --tensor-parallel-size "$TP" \
