@@ -35,7 +35,7 @@ def test_provider_config():
 
 def test_all_providers_defined():
     for name in ("vllm", "fireworks", "together", "openrouter", "dashscope",
-                 "openrouter_free", "huggingface"):
+                 "openrouter_free", "huggingface", "groq"):
         assert name in PROVIDERS
 
 

@@ -17,10 +17,11 @@ RESULTS_DIR.mkdir(exist_ok=True)
 # --- Inference provider ---
 # Set INFERENCE_PROVIDER to switch between local vLLM and cloud APIs.
 # Options: "vllm", "fireworks", "together", "openrouter", "dashscope",
-#          "openrouter_free", "huggingface"
+#          "openrouter_free", "huggingface", "groq"
 # FREE options (no payment required):
 #   "openrouter_free" — $0 Qwen3-VL-235B via OpenRouter (20 req/min, 200/day)
 #   "huggingface"     — free tier via HuggingFace Inference API
+#   "groq"            — free Llama 4 Scout vision (very fast, 30 req/min)
 INFERENCE_PROVIDER = os.getenv("INFERENCE_PROVIDER", "openrouter_free")
 
 # Cloud API key (used by all cloud providers)
@@ -69,6 +70,12 @@ PROVIDERS = {
         "base_url": "https://router.huggingface.co/v1",
         "model": os.getenv("HF_MODEL", "Qwen/Qwen2.5-VL-7B-Instruct"),
         "api_key": os.getenv("HF_TOKEN", os.getenv("INFERENCE_API_KEY", "")),
+        "supports_video_url": False,
+    },
+    "groq": {
+        "base_url": "https://api.groq.com/openai/v1",
+        "model": os.getenv("GROQ_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct"),
+        "api_key": os.getenv("GROQ_API_KEY", os.getenv("INFERENCE_API_KEY", "")),
         "supports_video_url": False,
     },
 }

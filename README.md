@@ -7,7 +7,7 @@ Analyze Instagram Reels with **Qwen3-VL** (vision-language model) to discover wh
 - Upload any video reel for AI-powered virality analysis
 - Structured JSON output: hook type, emotional trigger, pacing, virality score, and more
 - Web dashboard with stats, creator tracking, and result history
-- **7 inference backends** including 2 free-tier options
+- **8 inference backends** including 3 free-tier options
 - systemd services for production deployment
 - 22 unit tests covering all components
 
@@ -20,7 +20,11 @@ pip install -r requirements.txt
 export INFERENCE_PROVIDER=openrouter_free
 export INFERENCE_API_KEY=your-openrouter-key
 
-# Option B: HuggingFace free tier (sign up at https://huggingface.co)
+# Option B: Groq free tier (sign up at https://console.groq.com)
+# export INFERENCE_PROVIDER=groq
+# export GROQ_API_KEY=gsk_your_key
+
+# Option C: HuggingFace free tier (sign up at https://huggingface.co)
 # export INFERENCE_PROVIDER=huggingface
 # export HF_TOKEN=hf_your_token
 
@@ -49,6 +53,7 @@ export INFERENCE_PROVIDER=vllm
 | Provider | Model | Cost | Rate Limits |
 |----------|-------|------|-------------|
 | **OpenRouter Free** | qwen3-vl-235b | **$0** | 20 req/min, 200/day |
+| **Groq** | llama-4-scout-17b | **$0** | 30 req/min (very fast) |
 | **HuggingFace** | qwen2.5-vl-7b | **$0** | Rate-limited |
 | Fireworks AI | qwen3-vl-8b | ~$0.20/M tokens | High |
 | Together AI | qwen3-vl-32b | ~$0.50/M input | High |

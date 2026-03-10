@@ -45,6 +45,7 @@ export INFERENCE_PROVIDER=vllm
 | Provider | Model ID | Cost | Video URL |
 |----------|----------|------|-----------|
 | **OpenRouter Free** | `qwen/qwen3-vl-235b-a22b-thinking:free` | **$0** | No |
+| **Groq** | `meta-llama/llama-4-scout-17b-16e-instruct` | **$0** | No |
 | **HuggingFace** | `Qwen/Qwen2.5-VL-7B-Instruct` | **$0** | No |
 | Fireworks AI | `accounts/fireworks/models/qwen3-vl-8b-instruct` | Paid | No |
 | Together AI | `Qwen/Qwen3-VL-32B-Instruct` | Paid | No |
