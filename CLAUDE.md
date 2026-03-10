@@ -1,71 +1,66 @@
 # CLAUDE.md — Memory Notes for Instagram Reel Analyzer
 
 ## Project Overview
-This project analyzes Instagram Reels using Qwen3-VL (a vision-language model) to identify patterns that make reels go viral. Supports both local GPU (vLLM) and cloud API inference.
+This project analyzes Instagram Reels using vision-language models to identify patterns that make reels go viral. The system is organized into **3 modules** covering GPU-local, paid-cloud, and free-cloud inference — all sharing the same FastAPI app, video processor, and analysis pipeline.
 
-## Architecture
-- **Inference**: Pluggable backend — Fireworks AI, Together AI, OpenRouter, DashScope, or local vLLM
-- **FastAPI** app on port 8080 handles uploads, calls inference API, persists JSON results
-- **Dashboard** at `/` shows stats, creator list, and analysis history
-- Video frames extracted with OpenCV, resized to 384x384, base64-encoded, sent as multi-image chat completions
+## 3-Module Architecture
 
-## Key Files
+### Module 1 — Local GPU (vLLM + Qwen3-VL)
+- **Provider key**: `vllm`
+- **Model**: `Qwen/Qwen3-VL-8B-Instruct` (configurable via `VLLM_MODEL_NAME`)
+- **Requires**: GPU with >= 24 GB VRAM (RTX 4090, A100, A6000)
+- **Inference server**: vLLM v0.11+ on port 8000, OpenAI-compatible API
+- **Unique capability**: Native `video_url` input — vLLM samples frames internally at 2 fps, no OpenCV extraction needed
+- **Also supports**: Frame-based multi-image input (same as cloud)
+- **Key config**: `VLLM_HOST`, `VLLM_PORT`, `VLLM_GPU_MEMORY_UTIL`, `VLLM_MAX_MODEL_LEN`, `VLLM_TENSOR_PARALLEL_SIZE`
+- **Start**: `./scripts/start_vllm.sh` then `./scripts/start_app.sh`
+- **Systemd**: `sudo ./scripts/install_systemd.sh && sudo systemctl start vllm-qwen3vl reel-analyzer`
+- **Tip**: Set `OMP_NUM_THREADS=1` to avoid CPU contention
+
+### Module 2 — Paid Cloud APIs
+- **Provider keys**: `fireworks`, `together`, `openrouter`, `dashscope`
+- **Models**: Qwen3-VL-8B (Fireworks, OpenRouter, DashScope), Qwen3-VL-32B (Together)
+- **Requires**: API key + payment/credits
+- **Inference**: OpenAI-compatible chat completions via each provider's endpoint
+- **DashScope bonus**: Also supports native `video_url` (like vLLM)
+- **Start**: `export INFERENCE_PROVIDER=fireworks && export INFERENCE_API_KEY=... && ./scripts/start_app.sh`
+
+### Module 3 — Free Cloud APIs (no GPU, no payment)
+- **Provider keys**: `openrouter_free`, `groq`, `huggingface`
+- **Models**:
+  - OpenRouter Free: `qwen/qwen3-vl-235b-a22b-thinking:free` (Qwen3-VL 235B MoE, $0, 20 req/min, 200/day)
+  - Groq: `meta-llama/llama-4-scout-17b-16e-instruct` (Llama 4 Scout, $0, 30 req/min, ~460 tok/s)
+  - HuggingFace: `Qwen/Qwen2.5-VL-7B-Instruct` (free tier, rate-limited)
+- **Requires**: Free account signup only — no credit card
+- **Start**: `export INFERENCE_PROVIDER=openrouter_free && export INFERENCE_API_KEY=... && ./scripts/start_app.sh`
+- **Note**: OpenRouter free model is a "Thinking" variant — outputs chain-of-thought before JSON answer
+
+## Shared Components (all 3 modules)
 - `config.py` — all settings, provider config, creator list, analysis prompt
-- `server/app.py` — FastAPI routes (dashboard, upload, results API)
-- `server/inference_client.py` — unified client for all providers (cloud + local)
-- `server/video_processor.py` — frame extraction (OpenCV + PIL)
+- `server/app.py` — FastAPI routes (dashboard, upload, results API) on port 8080
+- `server/inference_client.py` — unified client for all 8 providers (cloud + local)
+- `server/video_processor.py` — frame extraction (OpenCV + PIL), resize to 384x384, base64 encoding
 - `server/vllm_client.py` — legacy client (kept for reference; inference_client.py is primary)
-- `templates/dashboard.html` — Jinja2 dashboard
-- `.env.example` — template for API keys and provider selection
+- `templates/dashboard.html` — Jinja2 dashboard at `/`
+- `.env.example` — template for all API keys and provider selection
 
-## Running (Free — no GPU, no payment)
-```bash
-cp .env.example .env
-# Sign up at https://openrouter.ai (free), paste API key:
-export INFERENCE_PROVIDER=openrouter_free
-export INFERENCE_API_KEY=your-openrouter-key
-./scripts/start_app.sh       # web dashboard at http://localhost:8080
-```
-
-## Running (Paid cloud — higher limits)
-```bash
-export INFERENCE_PROVIDER=fireworks   # or: together, openrouter, dashscope
-export INFERENCE_API_KEY=your-key
-./scripts/start_app.sh
-```
-
-## Running (Local vLLM — needs GPU)
-```bash
-export INFERENCE_PROVIDER=vllm
-./scripts/start_vllm.sh      # needs GPU with >= 24 GB VRAM
-./scripts/start_app.sh
-```
-
-## All Providers
-| Provider | Model ID | Cost | Video URL |
-|----------|----------|------|-----------|
-| **OpenRouter Free** | `qwen/qwen3-vl-235b-a22b-thinking:free` | **$0** | No |
-| **Groq** | `meta-llama/llama-4-scout-17b-16e-instruct` | **$0** | No |
-| **HuggingFace** | `Qwen/Qwen2.5-VL-7B-Instruct` | **$0** | No |
-| Fireworks AI | `accounts/fireworks/models/qwen3-vl-8b-instruct` | Paid | No |
-| Together AI | `Qwen/Qwen3-VL-32B-Instruct` | Paid | No |
-| OpenRouter | `qwen/qwen3-vl-8b-instruct` | Paid | No |
-| DashScope | `qwen3-vl-8b-instruct` | Paid | Yes |
-| Local vLLM | `Qwen/Qwen3-VL-8B-Instruct` | Free (GPU) | Yes |
+## All Providers (quick reference)
+| Provider | Module | Model ID | Cost | Video URL |
+|----------|--------|----------|------|-----------|
+| Local vLLM | 1 (GPU) | `Qwen/Qwen3-VL-8B-Instruct` | Free (GPU) | Yes |
+| Fireworks AI | 2 (Paid) | `accounts/fireworks/models/qwen3-vl-8b-instruct` | ~$0.20/M | No |
+| Together AI | 2 (Paid) | `Qwen/Qwen3-VL-32B-Instruct` | ~$0.50/M | No |
+| OpenRouter | 2 (Paid) | `qwen/qwen3-vl-8b-instruct` | ~$0.08/M | No |
+| DashScope | 2 (Paid) | `qwen3-vl-8b-instruct` | Pay-per-use | Yes |
+| **OpenRouter Free** | 3 (Free) | `qwen/qwen3-vl-235b-a22b-thinking:free` | **$0** | No |
+| **Groq** | 3 (Free) | `meta-llama/llama-4-scout-17b-16e-instruct` | **$0** | No |
+| **HuggingFace** | 3 (Free) | `Qwen/Qwen2.5-VL-7B-Instruct` | **$0** | No |
 
 ## Testing
 ```bash
 python3 -m pytest tests/ -v   # 22 tests, all pass
 ```
 
-## Model Notes
-- Qwen3-VL-8B-Instruct needs ~20-24 GB VRAM at fp16 (local only)
-- Available sizes: 2B, 4B, 8B, 32B (dense) + 30B-A3B, 235B-A22B (MoE)
-- Two inference paths: `analyze_video_frames()` (works everywhere) and `analyze_video_native()` (vLLM/DashScope only)
-- Set `OMP_NUM_THREADS=1` to avoid CPU contention with local vLLM
-
-## Systemd (local deployment)
-```bash
-sudo ./scripts/install_systemd.sh
-sudo systemctl start vllm-qwen3vl reel-analyzer
-```
+## Two Inference Paths
+- `analyze_video_frames()` — works with ALL providers; OpenCV extracts 16 frames, base64-encodes, sends as multi-image chat completion
+- `analyze_video_native()` — vLLM and DashScope only; sends full video as base64 video_url, model samples frames internally
