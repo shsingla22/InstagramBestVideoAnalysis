@@ -105,6 +105,14 @@ MAX_FRAMES_PER_VIDEO = int(os.getenv("MAX_FRAMES_PER_VIDEO", "16"))
 FRAME_RESIZE = (384, 384)  # Qwen3-VL optimal input size
 MAX_VIDEO_SIZE_MB = int(os.getenv("MAX_VIDEO_SIZE_MB", "100"))
 
+# --- Instagram authentication (for yt-dlp downloads) ---
+# Option 1: Path to Netscape-format cookies.txt exported from browser
+#   Export with a browser extension like "Get cookies.txt LOCALLY"
+INSTAGRAM_COOKIES_FILE = os.getenv("INSTAGRAM_COOKIES_FILE", "")
+# Option 2: Let yt-dlp extract cookies directly from a browser
+#   Values: "chrome", "firefox", "edge", "safari", "opera", "brave"
+INSTAGRAM_COOKIES_FROM_BROWSER = os.getenv("INSTAGRAM_COOKIES_FROM_BROWSER", "")
+
 # --- Instagram creators to analyze ---
 # Top creators known for viral reels across niches
 INSTAGRAM_CREATORS = [

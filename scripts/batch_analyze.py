@@ -18,7 +18,7 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from config import VIDEOS_DIR, RESULTS_DIR
+from config import VIDEOS_DIR, RESULTS_DIR, INSTAGRAM_COOKIES_FILE, INSTAGRAM_COOKIES_FROM_BROWSER
 from server.video_processor import extract_frames, frames_to_base64
 from server.inference_client import analyze_video_frames
 
@@ -39,18 +39,27 @@ def download_reel(url: str, creator: str, index: int) -> str | None:
         print(f"  [skip] Already downloaded: {output_path.name}")
         return str(output_path)
 
+    cmd = [
+        "yt-dlp",
+        "--no-check-certificates",
+        "-f", "mp4/best[ext=mp4]/best",
+        "-o", str(output_path),
+        "--no-playlist",
+        "--socket-timeout", "30",
+        "--retries", "3",
+    ]
+
+    # Add Instagram authentication via cookies
+    if INSTAGRAM_COOKIES_FILE and Path(INSTAGRAM_COOKIES_FILE).exists():
+        cmd.extend(["--cookies", INSTAGRAM_COOKIES_FILE])
+    elif INSTAGRAM_COOKIES_FROM_BROWSER:
+        cmd.extend(["--cookies-from-browser", INSTAGRAM_COOKIES_FROM_BROWSER])
+
+    cmd.append(url)
+
     try:
         result = subprocess.run(
-            [
-                "yt-dlp",
-                "--no-check-certificates",
-                "-f", "mp4/best[ext=mp4]/best",
-                "-o", str(output_path),
-                "--no-playlist",
-                "--socket-timeout", "30",
-                "--retries", "3",
-                url,
-            ],
+            cmd,
             capture_output=True,
             text=True,
             timeout=120,
