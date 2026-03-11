@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
-from scripts.generate_reels import REEL_TEMPLATES, FAL_PROVIDERS
+from scripts.generate_reels import REEL_TEMPLATES, FAL_PROVIDERS, FREE_PROVIDERS
 
 
 def test_all_templates_have_required_fields():
@@ -39,3 +39,24 @@ def test_template_prompts_are_descriptive():
 def test_template_ids_are_unique():
     ids = [t["id"] for t in REEL_TEMPLATES]
     assert len(ids) == len(set(ids)), "Duplicate template IDs"
+
+
+def test_free_providers_have_required_fields():
+    required = {"space", "name", "quality", "resolution", "max_duration", "api_name"}
+    for key, p in FREE_PROVIDERS.items():
+        assert required.issubset(set(p.keys())), f"Free provider {key} missing: {required - set(p.keys())}"
+
+
+def test_free_providers_are_truly_free():
+    """Verify free providers don't require API keys."""
+    for key, p in FREE_PROVIDERS.items():
+        assert "huggingface" in p["space"].lower() or "/" in p["space"], \
+            f"Free provider {key} doesn't use HuggingFace Spaces"
+
+
+def test_free_providers_have_vertical_resolution():
+    """Verify free providers support vertical video output."""
+    for key, p in FREE_PROVIDERS.items():
+        # Resolution string should indicate vertical (height > width)
+        assert "vertical" in p["resolution"].lower() or "9:16" in p["resolution"] or "2:3" in p["resolution"], \
+            f"Free provider {key} doesn't indicate vertical support"

@@ -4,8 +4,13 @@
 Reads the VIRAL_REELS_PLAYBOOK.md principles and generates short-form vertical
 videos (9:16) using the best available AI video generation APIs.
 
-Supported providers (via fal.ai unified API):
-  - Kling 3.0 Pro — newest, multi-shot, $0.029/sec (CHEAPEST)
+FREE providers (no API key or payment required — uses HuggingFace Spaces):
+  --provider ltx         LTX Video Distilled (Lightricks, best free, 768x432 vertical)
+  --provider cogvideo5b  CogVideoX-5B (THUDM, highest quality free, 480x720)
+  --provider cogvideo2b  CogVideoX-2B (THUDM, fastest free, 480x720)
+
+Paid providers (via fal.ai unified API):
+  - Kling 3.0 Pro — newest, multi-shot, $0.029/sec (CHEAPEST PAID)
   - Kling 2.6 Pro — proven quality, $0.07/sec
   - Veo 3 — Google's best, highest quality, $0.40/sec
   - Veo 3.1 Fast — Google quality at lower cost, $0.10/sec
@@ -16,14 +21,24 @@ Supported providers (via fal.ai unified API):
 Also supports OpenAI Sora 2 API and Runway Gen-4 API directly.
 
 Usage:
-  export FAL_KEY=your-fal-api-key        # Get from https://fal.ai/dashboard/keys
-  python3 scripts/generate_reels.py       # Generate all 5 templates
-  python3 scripts/generate_reels.py --template 1  # Generate specific template
-  python3 scripts/generate_reels.py --provider sora --openai-key sk-...  # Use Sora
-  python3 scripts/generate_reels.py --provider runway --runway-key ...   # Use Runway
+  # FREE — no signup, no API key, no payment:
+  python3 scripts/generate_reels.py --provider ltx           # Best free quality
+  python3 scripts/generate_reels.py --provider cogvideo5b    # Highest quality free
+  python3 scripts/generate_reels.py --provider cogvideo2b    # Fastest free
 
-Providers (via fal.ai):
-  --provider kling3     Kling 3.0 Pro (default, cheapest, $0.029/sec)
+  # PAID — requires API key:
+  export FAL_KEY=your-fal-api-key
+  python3 scripts/generate_reels.py                          # Default: kling3
+  python3 scripts/generate_reels.py --provider sora --openai-key sk-...
+  python3 scripts/generate_reels.py --provider runway --runway-key ...
+
+Free providers (HuggingFace Spaces — $0, no signup):
+  --provider ltx         LTX Video Distilled (default free, best quality)
+  --provider cogvideo5b  CogVideoX-5B (high quality, slower)
+  --provider cogvideo2b  CogVideoX-2B (faster, good quality)
+
+Paid providers (via fal.ai):
+  --provider kling3     Kling 3.0 Pro (cheapest paid, $0.029/sec)
   --provider kling26    Kling 2.6 Pro ($0.07/sec)
   --provider veo3       Google Veo 3 (highest quality, $0.40/sec)
   --provider veo31fast  Google Veo 3.1 Fast ($0.10/sec)
@@ -39,6 +54,7 @@ Direct API providers:
 import argparse
 import json
 import os
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -50,7 +66,35 @@ from config import DATA_DIR
 GENERATED_DIR = DATA_DIR / "generated"
 GENERATED_DIR.mkdir(exist_ok=True)
 
-# ── Provider configurations ──────────────────────────────────────────────────
+# ── Free provider configurations (HuggingFace Spaces) ────────────────────────
+FREE_PROVIDERS = {
+    "ltx": {
+        "space": "Lightricks/ltx-video-distilled",
+        "name": "LTX Video Distilled (Lightricks)",
+        "quality": "Best free — distilled for speed + quality",
+        "resolution": "768x432 (9:16 vertical)",
+        "max_duration": 5,
+        "api_name": "/text_to_video",
+    },
+    "cogvideo5b": {
+        "space": "THUDM/CogVideoX-5B-Space",
+        "name": "CogVideoX-5B (THUDM/Tsinghua)",
+        "quality": "Highest quality free — 5B param model",
+        "resolution": "480x720 (2:3 vertical)",
+        "max_duration": 6,
+        "api_name": "/generate",
+    },
+    "cogvideo2b": {
+        "space": "zai-org/CogVideoX-2B-Space",
+        "name": "CogVideoX-2B (THUDM/Tsinghua)",
+        "quality": "Fast free — 2B param model with prompt enhancement",
+        "resolution": "480x720 (2:3 vertical)",
+        "max_duration": 6,
+        "api_name": "/generate",
+    },
+}
+
+# ── Paid provider configurations (fal.ai) ────────────────────────────────────
 FAL_PROVIDERS = {
     "kling3": {
         "endpoint": "fal-ai/kling-video/v3/pro/text-to-video",
@@ -229,6 +273,146 @@ REEL_TEMPLATES = [
         ),
     },
 ]
+
+
+def _get_hf_client(space: str):
+    """Create a Gradio client with optional HuggingFace token for higher quota."""
+    from gradio_client import Client
+
+    hf_token = os.environ.get("HF_TOKEN", "")
+    if hf_token:
+        print("  Using HF_TOKEN for higher GPU quota")
+        return Client(space, hf_token=hf_token)
+    else:
+        print("  TIP: Set HF_TOKEN (free account) for 5x more GPU quota")
+        print("       Sign up at https://huggingface.co/join (free)")
+        print("       Get token at https://huggingface.co/settings/tokens")
+        return Client(space)
+
+
+def _extract_video_path(result) -> str | None:
+    """Extract video file path from various Gradio result formats."""
+    if isinstance(result, tuple):
+        for item in result:
+            if isinstance(item, dict) and "video" in item:
+                return item["video"]
+            elif isinstance(item, str) and item.endswith(".mp4"):
+                return item
+    elif isinstance(result, dict) and "video" in result:
+        return result["video"]
+    elif isinstance(result, str) and result.endswith(".mp4"):
+        return result
+    return None
+
+
+def generate_with_ltx(template: dict) -> dict:
+    """Generate a video using LTX Video Distilled on HuggingFace Spaces (FREE)."""
+    provider = FREE_PROVIDERS["ltx"]
+    print(f"  Provider: {provider['name']}")
+    print(f"  Resolution: {provider['resolution']}")
+    print(f"  Cost: $0.00 (free HuggingFace Space)")
+
+    print("  Connecting to HuggingFace Space...")
+    client = _get_hf_client(provider["space"])
+
+    duration = min(int(template["duration"]), provider["max_duration"])
+
+    start = time.time()
+    result = client.predict(
+        prompt=template["prompt"],
+        negative_prompt="worst quality, inconsistent motion, blurry, jittery, distorted, low resolution, watermark",
+        input_image_filepath=None,
+        input_video_filepath=None,
+        height_ui=768,       # 9:16 vertical
+        width_ui=432,        # 9:16 vertical
+        mode="text-to-video",
+        duration_ui=duration,
+        ui_frames_to_use=9,
+        seed_ui=42,
+        randomize_seed=True,
+        ui_guidance_scale=1,
+        improve_texture_flag=True,
+        api_name="/text_to_video",
+    )
+    elapsed = time.time() - start
+
+    return {
+        "result": {"local_path": _extract_video_path(result)},
+        "elapsed_seconds": elapsed,
+        "provider": provider["name"],
+        "endpoint": provider["space"],
+    }
+
+
+def generate_with_cogvideo5b(template: dict) -> dict:
+    """Generate a video using CogVideoX-5B on HuggingFace Spaces (FREE)."""
+    provider = FREE_PROVIDERS["cogvideo5b"]
+    print(f"  Provider: {provider['name']}")
+    print(f"  Resolution: {provider['resolution']}")
+    print(f"  Cost: $0.00 (free HuggingFace Space)")
+
+    print("  Connecting to HuggingFace Space...")
+    client = _get_hf_client(provider["space"])
+
+    start = time.time()
+    result = client.predict(
+        prompt=template["prompt"],
+        image_input=None,
+        video_input=None,
+        api_name="/generate",
+    )
+    elapsed = time.time() - start
+
+    return {
+        "result": {"local_path": _extract_video_path(result)},
+        "elapsed_seconds": elapsed,
+        "provider": provider["name"],
+        "endpoint": provider["space"],
+    }
+
+
+def generate_with_cogvideo2b(template: dict) -> dict:
+    """Generate a video using CogVideoX-2B on HuggingFace Spaces (FREE).
+
+    Includes automatic prompt enhancement for better results.
+    """
+    provider = FREE_PROVIDERS["cogvideo2b"]
+    print(f"  Provider: {provider['name']}")
+    print(f"  Resolution: {provider['resolution']}")
+    print(f"  Cost: $0.00 (free HuggingFace Space)")
+
+    print("  Connecting to HuggingFace Space...")
+    client = _get_hf_client(provider["space"])
+
+    # Enhance prompt first (built-in feature of CogVideoX-2B space)
+    print("  Enhancing prompt with CogVideoX prompt optimizer...")
+    try:
+        enhanced_prompt = client.predict(
+            prompt=template["prompt"],
+            api_name="/enhance_prompt_func",
+        )
+        if enhanced_prompt and len(enhanced_prompt) > 20:
+            print(f"  Enhanced: {enhanced_prompt[:100]}...")
+        else:
+            enhanced_prompt = template["prompt"]
+    except Exception:
+        enhanced_prompt = template["prompt"]
+
+    start = time.time()
+    result = client.predict(
+        prompt=enhanced_prompt,
+        num_inference_steps=50,
+        guidance_scale=6.0,
+        api_name="/generate",
+    )
+    elapsed = time.time() - start
+
+    return {
+        "result": {"local_path": _extract_video_path(result)},
+        "elapsed_seconds": elapsed,
+        "provider": provider["name"],
+        "endpoint": provider["space"],
+    }
 
 
 def generate_with_fal(template: dict, provider_key: str) -> dict:
@@ -428,12 +612,28 @@ def download_video(url: str, output_path: Path) -> None:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate viral Instagram Reels with AI")
+    all_providers = list(FREE_PROVIDERS.keys()) + list(FAL_PROVIDERS.keys()) + ["sora", "runway"]
+
+    parser = argparse.ArgumentParser(
+        description="Generate viral Instagram Reels with AI",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Free providers (no API key needed):
+  ltx          LTX Video Distilled — best free quality (default)
+  cogvideo5b   CogVideoX-5B — highest quality free, slower
+  cogvideo2b   CogVideoX-2B — fastest free, with prompt enhancement
+
+Paid providers (require FAL_KEY, --openai-key, or --runway-key):
+  kling3       Kling 3.0 Pro ($0.029/sec, cheapest paid)
+  veo3         Google Veo 3 ($0.40/sec, best paid quality)
+  sora         OpenAI Sora 2 ($0.10/sec)
+  runway       Runway Gen-4 Turbo""",
+    )
     parser.add_argument("--template", type=int, choices=[1, 2, 3, 4, 5],
                         help="Generate a specific template (1-5). Default: all")
-    parser.add_argument("--provider", default="kling3",
-                        choices=list(FAL_PROVIDERS.keys()) + ["sora", "runway"],
-                        help="Video generation provider (default: kling3)")
+    parser.add_argument("--provider", default="ltx",
+                        choices=all_providers,
+                        help="Video generation provider (default: ltx — free)")
     parser.add_argument("--openai-key", default=os.environ.get("OPENAI_API_KEY", ""),
                         help="OpenAI API key (required for --provider sora)")
     parser.add_argument("--runway-key", default=os.environ.get("RUNWAYML_API_SECRET", ""),
@@ -451,40 +651,53 @@ def main():
             print(f"      Viral mechanics: {', '.join(t['viral_mechanics'][:2])}")
             print()
 
-        print(f"\nAvailable Providers:")
+        print(f"\nFREE Providers (no API key needed):")
         print(f"{'─' * 70}")
-        print(f"  {'Provider':<12} {'Model':<28} {'Cost/sec':>10} {'API':<10}")
-        print(f"  {'─'*12} {'─'*28} {'─'*10} {'─'*10}")
+        print(f"  {'Provider':<12} {'Model':<34} {'Cost':>8} {'Resolution':<16}")
+        print(f"  {'─'*12} {'─'*34} {'─'*8} {'─'*16}")
+        for key, p in FREE_PROVIDERS.items():
+            print(f"  {key:<12} {p['name'][:34]:<34} {'FREE':>8} {p['resolution']:<16}")
+
+        print(f"\nPaid Providers (require API key):")
+        print(f"{'─' * 70}")
+        print(f"  {'Provider':<12} {'Model':<34} {'Cost/sec':>8} {'API':<10}")
+        print(f"  {'─'*12} {'─'*34} {'─'*8} {'─'*10}")
         for key, p in FAL_PROVIDERS.items():
-            print(f"  {key:<12} {p['name']:<28} ${p['cost_per_sec']:<9.3f} fal.ai")
-        print(f"  {'sora':<12} {'OpenAI Sora 2':<28} ${'0.100':<9} OpenAI")
-        print(f"  {'runway':<12} {'Runway Gen-4 Turbo':<28} ${'0.062':<9} Runway")
+            print(f"  {key:<12} {p['name'][:34]:<34} ${p['cost_per_sec']:<7.3f} fal.ai")
+        print(f"  {'sora':<12} {'OpenAI Sora 2':<34} ${'0.100':<7} OpenAI")
+        print(f"  {'runway':<12} {'Runway Gen-4 Turbo':<34} ${'0.062':<7} Runway")
         return
 
-    # Validate API keys
-    if args.provider == "sora":
-        if not args.openai_key:
-            print("ERROR: --openai-key required for Sora provider")
-            print("  Usage: python3 scripts/generate_reels.py --provider sora --openai-key sk-...")
-            sys.exit(1)
-    elif args.provider == "runway":
-        if not args.runway_key:
-            print("ERROR: --runway-key required for Runway provider")
-            print("  Usage: python3 scripts/generate_reels.py --provider runway --runway-key key-...")
-            sys.exit(1)
-    else:
-        fal_key = os.environ.get("FAL_KEY", "")
-        if not fal_key:
-            print("ERROR: Set FAL_KEY environment variable")
-            print("  1. Sign up at https://fal.ai (free signup, pay-per-use)")
-            print("  2. Get API key from https://fal.ai/dashboard/keys")
-            print("  3. export FAL_KEY=your-key-here")
-            print()
-            print("  Cost estimate for all 5 templates (5s each):")
-            for key, p in FAL_PROVIDERS.items():
-                total = p["cost_per_sec"] * 5 * 5
-                print(f"    {key:<12}: ${total:.2f} total ({p['name']})")
-            sys.exit(1)
+    # Validate API keys (free providers don't need any)
+    is_free = args.provider in FREE_PROVIDERS
+    if not is_free:
+        if args.provider == "sora":
+            if not args.openai_key:
+                print("ERROR: --openai-key required for Sora provider")
+                print("  Usage: python3 scripts/generate_reels.py --provider sora --openai-key sk-...")
+                print("\n  TIP: Use a FREE provider instead (no API key needed):")
+                print("    python3 scripts/generate_reels.py --provider ltx")
+                sys.exit(1)
+        elif args.provider == "runway":
+            if not args.runway_key:
+                print("ERROR: --runway-key required for Runway provider")
+                print("  Usage: python3 scripts/generate_reels.py --provider runway --runway-key key-...")
+                print("\n  TIP: Use a FREE provider instead (no API key needed):")
+                print("    python3 scripts/generate_reels.py --provider ltx")
+                sys.exit(1)
+        else:
+            fal_key = os.environ.get("FAL_KEY", "")
+            if not fal_key:
+                print("ERROR: Set FAL_KEY environment variable for paid providers")
+                print("  1. Sign up at https://fal.ai (free signup, pay-per-use)")
+                print("  2. Get API key from https://fal.ai/dashboard/keys")
+                print("  3. export FAL_KEY=your-key-here")
+                print()
+                print("  Or use a FREE provider instead (no API key needed):")
+                print("    python3 scripts/generate_reels.py --provider ltx")
+                print("    python3 scripts/generate_reels.py --provider cogvideo5b")
+                print("    python3 scripts/generate_reels.py --provider cogvideo2b")
+                sys.exit(1)
 
     # Select templates to generate
     templates = REEL_TEMPLATES
@@ -492,11 +705,16 @@ def main():
         templates = [t for t in REEL_TEMPLATES if t["id"] == args.template]
 
     direct_providers = {"sora": "OpenAI Sora 2", "runway": "Runway Gen-4 Turbo"}
-    provider_name = FAL_PROVIDERS.get(args.provider, {}).get("name", direct_providers.get(args.provider, args.provider))
+    if is_free:
+        provider_name = FREE_PROVIDERS[args.provider]["name"]
+    else:
+        provider_name = FAL_PROVIDERS.get(args.provider, {}).get("name", direct_providers.get(args.provider, args.provider))
 
     print(f"\n{'=' * 70}")
     print(f"  VIRAL REEL GENERATOR")
     print(f"  Provider: {provider_name}")
+    if is_free:
+        print(f"  Cost: FREE (open-source model on HuggingFace Spaces)")
     print(f"  Templates: {len(templates)}")
     print(f"  Output: {GENERATED_DIR}")
     print(f"{'=' * 70}")
@@ -511,18 +729,70 @@ def main():
         print(f"{'─' * 70}")
 
         try:
-            if args.provider == "sora":
+            output_path = GENERATED_DIR / f"reel_{template['id']}_{template['format']}.mp4"
+            video_url = ""
+
+            if is_free:
+                # Free providers return local file paths from HuggingFace Spaces
+                # Retry up to 3 times (free GPU queues can be busy)
+                free_gen_funcs = {
+                    "ltx": generate_with_ltx,
+                    "cogvideo5b": generate_with_cogvideo5b,
+                    "cogvideo2b": generate_with_cogvideo2b,
+                }
+                gen_func = free_gen_funcs[args.provider]
+
+                gen_result = None
+                for attempt in range(3):
+                    try:
+                        if attempt > 0:
+                            wait = 30 * attempt
+                            print(f"  Retry {attempt}/2 — waiting {wait}s for GPU queue...")
+                            time.sleep(wait)
+                        gen_result = gen_func(template)
+                        break
+                    except Exception as retry_err:
+                        err_msg = str(retry_err)
+                        if "GPU quota" in err_msg:
+                            hf_token = os.environ.get("HF_TOKEN", "")
+                            if not hf_token:
+                                print(f"\n  GPU QUOTA EXCEEDED — free anonymous quota is very limited.")
+                                print(f"  Fix: Set HF_TOKEN for 5x more free GPU time:")
+                                print(f"    1. Sign up at https://huggingface.co/join (FREE)")
+                                print(f"    2. Get token at https://huggingface.co/settings/tokens")
+                                print(f"    3. export HF_TOKEN=hf_your_token_here")
+                                print(f"    4. Re-run this script")
+                            if attempt == 2:
+                                raise
+                        elif "CancelledError" in err_msg or "queue" in err_msg.lower():
+                            print(f"  Queue busy: {err_msg[:100]}")
+                            if attempt == 2:
+                                raise
+                        else:
+                            raise
+
+                local_path = gen_result["result"].get("local_path")
+                if local_path and os.path.exists(local_path):
+                    shutil.copy2(local_path, output_path)
+                    size_mb = output_path.stat().st_size / 1024 / 1024
+                    print(f"  Saved: {output_path.name} ({size_mb:.1f} MB)")
+                    video_url = f"local://{output_path}"
+                else:
+                    print(f"  WARNING: No video file returned from Space.")
+                    output_path = GENERATED_DIR / f"reel_{template['id']}_{template['format']}_result.json"
+                    with open(output_path, "w") as f:
+                        json.dump(gen_result["result"], f, indent=2, default=str)
+
+            elif args.provider == "sora":
                 gen_result = generate_with_sora(template, args.openai_key)
-                # Save Sora video directly from bytes
-                output_path = GENERATED_DIR / f"reel_{template['id']}_{template['format']}.mp4"
                 with open(output_path, "wb") as f:
                     f.write(gen_result["result"]["video_bytes"])
                 video_url = f"local://{output_path}"
+
             elif args.provider == "runway":
                 gen_result = generate_with_runway(template, args.runway_key)
                 video_data = gen_result["result"]
                 video_url = video_data.get("video", {}).get("url", "")
-                output_path = GENERATED_DIR / f"reel_{template['id']}_{template['format']}.mp4"
                 if video_url and video_url.startswith("http"):
                     download_video(video_url, output_path)
                 else:
@@ -530,18 +800,16 @@ def main():
                     output_path = GENERATED_DIR / f"reel_{template['id']}_{template['format']}_result.json"
                     with open(output_path, "w") as f:
                         json.dump(gen_result["result"], f, indent=2)
+
             else:
                 gen_result = generate_with_fal(template, args.provider)
-                # Download video from fal result
                 video_data = gen_result["result"]
                 video_url = video_data.get("video", {}).get("url", "")
                 if not video_url:
-                    # Try alternate result formats
                     if isinstance(video_data, dict):
                         video_url = video_data.get("url", "") or video_data.get("output", {}).get("url", "")
                     print(f"  Result keys: {list(video_data.keys()) if isinstance(video_data, dict) else type(video_data)}")
 
-                output_path = GENERATED_DIR / f"reel_{template['id']}_{template['format']}.mp4"
                 if video_url and video_url.startswith("http"):
                     download_video(video_url, output_path)
                 else:
@@ -595,11 +863,14 @@ def main():
     print(f"{'=' * 70}")
 
     if successful:
-        total_cost = sum(
-            FAL_PROVIDERS.get(args.provider, {}).get("cost_per_sec", 0.10) * 5
-            for _ in successful
-        )
-        print(f"\n  Estimated total cost: ${total_cost:.2f}")
+        if is_free:
+            print(f"\n  Total cost: $0.00 (free open-source models)")
+        else:
+            total_cost = sum(
+                FAL_PROVIDERS.get(args.provider, {}).get("cost_per_sec", 0.10) * 5
+                for _ in successful
+            )
+            print(f"\n  Estimated total cost: ${total_cost:.2f}")
         print(f"\n  Generated videos:")
         for r in successful:
             print(f"    [{r['template_id']}] {r['template_name']} — {r['output_file']}")
