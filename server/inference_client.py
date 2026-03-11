@@ -75,11 +75,11 @@ async def analyze_video_frames(base64_frames: list[str], custom_prompt: str | No
     payload = {
         "model": _get_model(),
         "messages": [{"role": "user", "content": content}],
-        "max_tokens": 2048,
+        "max_tokens": 8192,
         "temperature": 0.2,
     }
 
-    async with httpx.AsyncClient(timeout=120) as client:
+    async with httpx.AsyncClient(timeout=180) as client:
         resp = await client.post(
             f"{_get_base_url()}/chat/completions",
             json=payload,
@@ -118,11 +118,11 @@ async def analyze_video_native(video_base64: str, custom_prompt: str | None = No
     payload = {
         "model": _get_model(),
         "messages": [{"role": "user", "content": content}],
-        "max_tokens": 2048,
+        "max_tokens": 8192,
         "temperature": 0.2,
     }
 
-    async with httpx.AsyncClient(timeout=180) as client:
+    async with httpx.AsyncClient(timeout=240) as client:
         resp = await client.post(
             f"{_get_base_url()}/chat/completions",
             json=payload,
@@ -136,12 +136,35 @@ async def analyze_video_native(video_base64: str, custom_prompt: str | None = No
 
 
 def _parse_analysis(raw_text: str) -> dict:
-    """Try to parse model output as JSON."""
+    """Try to parse model output as JSON.
+
+    Handles thinking models that output chain-of-thought before JSON,
+    and code-fenced JSON blocks.
+    """
     try:
         cleaned = raw_text.strip()
-        if cleaned.startswith("```"):
-            cleaned = cleaned.split("\n", 1)[1]
+
+        # Handle thinking model output: strip <think>...</think> blocks
+        if "<think>" in cleaned:
+            import re
+            cleaned = re.sub(r"<think>.*?</think>", "", cleaned, flags=re.DOTALL).strip()
+
+        # Handle code-fenced JSON
+        if "```json" in cleaned:
+            cleaned = cleaned.split("```json", 1)[1]
             cleaned = cleaned.rsplit("```", 1)[0]
+        elif "```" in cleaned:
+            cleaned = cleaned.split("```", 1)[1]
+            if cleaned.startswith("\n"):
+                cleaned = cleaned[1:]
+            cleaned = cleaned.rsplit("```", 1)[0]
+
+        # Try to find JSON object in the remaining text
+        start = cleaned.find("{")
+        end = cleaned.rfind("}")
+        if start != -1 and end != -1:
+            cleaned = cleaned[start:end + 1]
+
         analysis = json.loads(cleaned)
         return {"status": "success", "analysis": analysis, "raw": raw_text}
     except json.JSONDecodeError:

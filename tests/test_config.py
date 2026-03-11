@@ -50,4 +50,9 @@ def test_creators_list():
 def test_analysis_prompt_contains_json_keys():
     assert "virality_score" in VIDEO_ANALYSIS_PROMPT
     assert "hook_type" in VIDEO_ANALYSIS_PROMPT
-    assert "emotional_trigger" in VIDEO_ANALYSIS_PROMPT
+    assert "primary_emotion" in VIDEO_ANALYSIS_PROMPT
+    assert "hook_analysis" in VIDEO_ANALYSIS_PROMPT
+    assert "visual_cinematography" in VIDEO_ANALYSIS_PROMPT
+    assert "psychological_triggers" in VIDEO_ANALYSIS_PROMPT
+    assert "actionable_improvements" in VIDEO_ANALYSIS_PROMPT
+    assert "expert_summary" in VIDEO_ANALYSIS_PROMPT
