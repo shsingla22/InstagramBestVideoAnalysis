@@ -4,15 +4,16 @@
 Reads the VIRAL_REELS_PLAYBOOK.md principles and generates short-form vertical
 videos (9:16) using the best available AI video generation APIs.
 
-FREE providers (no API key or payment required — uses HuggingFace Spaces):
-  --provider ltx         LTX Video Distilled (Lightricks, best free, 768x432 vertical)
-  --provider cogvideo5b  CogVideoX-5B (THUDM, highest quality free, 480x720)
-  --provider cogvideo2b  CogVideoX-2B (THUDM, fastest free, 480x720)
+FREE providers (no payment required):
+  --provider veo3        Google Veo 3 via AI Studio (BEST free, 720p, needs GOOGLE_API_KEY)
+  --provider ltx         LTX Video Distilled (Lightricks, 768x432, HuggingFace Space)
+  --provider cogvideo5b  CogVideoX-5B (THUDM, 480x720, HuggingFace Space)
+  --provider cogvideo2b  CogVideoX-2B (THUDM, 480x720, HuggingFace Space)
 
 Paid providers (via fal.ai unified API):
   - Kling 3.0 Pro — newest, multi-shot, $0.029/sec (CHEAPEST PAID)
   - Kling 2.6 Pro — proven quality, $0.07/sec
-  - Veo 3 — Google's best, highest quality, $0.40/sec
+  - Veo 3 (fal.ai) — Google quality via fal, $0.40/sec
   - Veo 3.1 Fast — Google quality at lower cost, $0.10/sec
   - MiniMax Video 01 — fast generation, $0.10/sec
   - Wan 2.6 — open-source quality, $0.05/sec
@@ -21,9 +22,10 @@ Paid providers (via fal.ai unified API):
 Also supports OpenAI Sora 2 API and Runway Gen-4 API directly.
 
 Usage:
-  # FREE — no signup, no API key, no payment:
-  python3 scripts/generate_reels.py --provider ltx           # Best free quality
-  python3 scripts/generate_reels.py --provider cogvideo5b    # Highest quality free
+  # FREE — no payment required:
+  python3 scripts/generate_reels.py --provider veo3          # Best free (720p, Google)
+  python3 scripts/generate_reels.py --provider ltx           # No API key needed
+  python3 scripts/generate_reels.py --provider cogvideo5b    # No API key needed
   python3 scripts/generate_reels.py --provider cogvideo2b    # Fastest free
 
   # PAID — requires API key:
@@ -32,15 +34,16 @@ Usage:
   python3 scripts/generate_reels.py --provider sora --openai-key sk-...
   python3 scripts/generate_reels.py --provider runway --runway-key ...
 
-Free providers (HuggingFace Spaces — $0, no signup):
-  --provider ltx         LTX Video Distilled (default free, best quality)
-  --provider cogvideo5b  CogVideoX-5B (high quality, slower)
-  --provider cogvideo2b  CogVideoX-2B (faster, good quality)
+Free providers ($0):
+  --provider veo3        Google Veo 3 (best free, 720p, needs GOOGLE_API_KEY)
+  --provider ltx         LTX Video Distilled (no API key needed)
+  --provider cogvideo5b  CogVideoX-5B (no API key needed, slower)
+  --provider cogvideo2b  CogVideoX-2B (no API key needed, fastest)
 
 Paid providers (via fal.ai):
   --provider kling3     Kling 3.0 Pro (cheapest paid, $0.029/sec)
   --provider kling26    Kling 2.6 Pro ($0.07/sec)
-  --provider veo3       Google Veo 3 (highest quality, $0.40/sec)
+  --provider veo3_fal   Google Veo 3 via fal.ai ($0.40/sec)
   --provider veo31fast  Google Veo 3.1 Fast ($0.10/sec)
   --provider minimax    MiniMax Video 01 Live ($0.10/sec)
   --provider wan26      Wan 2.6 (open-source, $0.05/sec)
@@ -66,25 +69,36 @@ from config import DATA_DIR
 GENERATED_DIR = DATA_DIR / "generated"
 GENERATED_DIR.mkdir(exist_ok=True)
 
-# ── Free provider configurations (HuggingFace Spaces) ────────────────────────
+# ── Free provider configurations ──────────────────────────────────────────────
 FREE_PROVIDERS = {
+    "veo3": {
+        "type": "google",
+        "name": "Google Veo 3 (AI Studio)",
+        "quality": "Best free — state-of-the-art 720p, audio",
+        "resolution": "720p (9:16 vertical)",
+        "max_duration": 8,
+        "api_name": "google-genai",
+    },
     "ltx": {
+        "type": "huggingface",
         "space": "Lightricks/ltx-video-distilled",
         "name": "LTX Video Distilled (Lightricks)",
-        "quality": "Best free — distilled for speed + quality",
+        "quality": "Good free — distilled for speed + quality",
         "resolution": "768x432 (9:16 vertical)",
         "max_duration": 5,
         "api_name": "/text_to_video",
     },
     "cogvideo5b": {
+        "type": "huggingface",
         "space": "THUDM/CogVideoX-5B-Space",
         "name": "CogVideoX-5B (THUDM/Tsinghua)",
-        "quality": "Highest quality free — 5B param model",
+        "quality": "Highest quality HF — 5B param model",
         "resolution": "480x720 (2:3 vertical)",
         "max_duration": 6,
         "api_name": "/generate",
     },
     "cogvideo2b": {
+        "type": "huggingface",
         "space": "zai-org/CogVideoX-2B-Space",
         "name": "CogVideoX-2B (THUDM/Tsinghua)",
         "quality": "Fast free — 2B param model with prompt enhancement",
@@ -110,9 +124,9 @@ FAL_PROVIDERS = {
         "max_duration": "10",
         "supports_audio": True,
     },
-    "veo3": {
+    "veo3_fal": {
         "endpoint": "fal-ai/veo3",
-        "name": "Google Veo 3",
+        "name": "Google Veo 3 (via fal.ai)",
         "cost_per_sec": 0.40,
         "max_duration": "8",
         "supports_audio": True,
@@ -273,6 +287,76 @@ REEL_TEMPLATES = [
         ),
     },
 ]
+
+
+def generate_with_veo3(template: dict) -> dict:
+    """Generate a video using Google Veo 3 via AI Studio (FREE — ~10 gen/day).
+
+    Requires GOOGLE_API_KEY from https://aistudio.google.com/apikey (free, no CC).
+    """
+    from google import genai
+    from google.genai import types
+
+    api_key = os.environ.get("GOOGLE_API_KEY", "")
+    if not api_key:
+        raise RuntimeError(
+            "GOOGLE_API_KEY not set.\n"
+            "  Get a FREE key (no credit card):\n"
+            "  1. Go to https://aistudio.google.com/apikey\n"
+            "  2. Click 'Create API Key'\n"
+            "  3. export GOOGLE_API_KEY=your-key-here"
+        )
+
+    provider = FREE_PROVIDERS["veo3"]
+    print(f"  Provider: {provider['name']}")
+    print(f"  Resolution: {provider['resolution']}")
+    print(f"  Cost: $0.00 (free Google AI Studio tier, ~10 gen/day)")
+
+    client = genai.Client(api_key=api_key)
+
+    duration = min(int(template["duration"]), provider["max_duration"])
+
+    start = time.time()
+    print("  Submitting to Veo 3...")
+    operation = client.models.generate_videos(
+        model="veo-3.0-generate-preview",
+        prompt=template["prompt"],
+        config=types.GenerateVideosConfig(
+            aspect_ratio="9:16",
+            number_of_videos=1,
+        ),
+    )
+
+    # Poll for completion
+    print("  Generating (this takes 1-3 minutes)...")
+    poll_count = 0
+    while not operation.done:
+        time.sleep(10)
+        operation = client.operations.get(operation)
+        poll_count += 1
+        if poll_count % 6 == 0:
+            print(f"    Still generating... ({poll_count * 10}s)")
+
+    elapsed = time.time() - start
+
+    # Download the generated video
+    video_path = None
+    if operation.result and operation.result.generated_videos:
+        video = operation.result.generated_videos[0]
+        output_path = GENERATED_DIR / f"veo3_temp_{template['id']}.mp4"
+        client.files.download(file=video.video, download_path=str(output_path))
+        video_path = str(output_path)
+        size_mb = output_path.stat().st_size / 1024 / 1024
+        print(f"  Generated: {size_mb:.1f} MB in {elapsed:.0f}s")
+    else:
+        print(f"  WARNING: Veo 3 returned no video. Operation: {operation}")
+
+    return {
+        "result": {"local_path": video_path},
+        "elapsed_seconds": elapsed,
+        "provider": provider["name"],
+        "endpoint": "aistudio.google.com",
+    }
 
 
 def _get_hf_client(space: str):
@@ -618,14 +702,15 @@ def main():
         description="Generate viral Instagram Reels with AI",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-Free providers (no API key needed):
-  ltx          LTX Video Distilled — best free quality (default)
-  cogvideo5b   CogVideoX-5B — highest quality free, slower
-  cogvideo2b   CogVideoX-2B — fastest free, with prompt enhancement
+Free providers ($0, no payment):
+  veo3         Google Veo 3 via AI Studio — BEST free, 720p (needs GOOGLE_API_KEY)
+  ltx          LTX Video Distilled — no API key needed (default)
+  cogvideo5b   CogVideoX-5B — no API key needed, slower
+  cogvideo2b   CogVideoX-2B — no API key needed, fastest
 
 Paid providers (require FAL_KEY, --openai-key, or --runway-key):
   kling3       Kling 3.0 Pro ($0.029/sec, cheapest paid)
-  veo3         Google Veo 3 ($0.40/sec, best paid quality)
+  veo3_fal     Google Veo 3 via fal.ai ($0.40/sec)
   sora         OpenAI Sora 2 ($0.10/sec)
   runway       Runway Gen-4 Turbo""",
     )
@@ -714,7 +799,10 @@ Paid providers (require FAL_KEY, --openai-key, or --runway-key):
     print(f"  VIRAL REEL GENERATOR")
     print(f"  Provider: {provider_name}")
     if is_free:
-        print(f"  Cost: FREE (open-source model on HuggingFace Spaces)")
+        if args.provider == "veo3":
+            print(f"  Cost: FREE (Google AI Studio, ~10 gen/day)")
+        else:
+            print(f"  Cost: FREE (open-source model on HuggingFace Spaces)")
     print(f"  Templates: {len(templates)}")
     print(f"  Output: {GENERATED_DIR}")
     print(f"{'=' * 70}")
@@ -736,6 +824,7 @@ Paid providers (require FAL_KEY, --openai-key, or --runway-key):
                 # Free providers return local file paths from HuggingFace Spaces
                 # Retry up to 3 times (free GPU queues can be busy)
                 free_gen_funcs = {
+                    "veo3": generate_with_veo3,
                     "ltx": generate_with_ltx,
                     "cogvideo5b": generate_with_cogvideo5b,
                     "cogvideo2b": generate_with_cogvideo2b,

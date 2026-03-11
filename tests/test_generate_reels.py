@@ -42,16 +42,18 @@ def test_template_ids_are_unique():
 
 
 def test_free_providers_have_required_fields():
-    required = {"space", "name", "quality", "resolution", "max_duration", "api_name"}
+    base_required = {"type", "name", "quality", "resolution", "max_duration", "api_name"}
     for key, p in FREE_PROVIDERS.items():
-        assert required.issubset(set(p.keys())), f"Free provider {key} missing: {required - set(p.keys())}"
+        assert base_required.issubset(set(p.keys())), f"Free provider {key} missing: {base_required - set(p.keys())}"
+        if p["type"] == "huggingface":
+            assert "space" in p, f"HuggingFace provider {key} missing 'space' field"
 
 
 def test_free_providers_are_truly_free():
-    """Verify free providers don't require API keys."""
+    """Verify free providers use either HuggingFace Spaces or known free APIs."""
     for key, p in FREE_PROVIDERS.items():
-        assert "huggingface" in p["space"].lower() or "/" in p["space"], \
-            f"Free provider {key} doesn't use HuggingFace Spaces"
+        assert p["type"] in ("huggingface", "google"), \
+            f"Free provider {key} has unknown type: {p['type']}"
 
 
 def test_free_providers_have_vertical_resolution():
