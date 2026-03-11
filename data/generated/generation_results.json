@@ -3,6 +3,6 @@
     "template_id": 2,
     "template_name": "Satisfying Cooking Close-Up",
     "status": "error",
-    "error": "You have exceeded your GPU quota (60s requested vs. 0s left). Try again in 0:00:00"
+    "error": "GOOGLE_API_KEY not set.\n  Get a FREE key (no credit card):\n  1. Go to https://aistudio.google.com/apikey\n  2. Click 'Create API Key'\n  3. export GOOGLE_API_KEY=your-key-here"
   }
 ]
