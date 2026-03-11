@@ -5,26 +5,35 @@ Reads the VIRAL_REELS_PLAYBOOK.md principles and generates short-form vertical
 videos (9:16) using the best available AI video generation APIs.
 
 Supported providers (via fal.ai unified API):
-  - Kling 2.6 Pro (text-to-video) — best price/quality ratio, $0.029/sec
-  - Kling 3.0 Pro (text-to-video) — newest, multi-shot support
-  - Veo 3 (text-to-video) — Google's best, highest quality
-  - MiniMax Video 01 (text-to-video) — fast generation
-  - Sora 2 (via OpenAI API) — highest realism
+  - Kling 3.0 Pro — newest, multi-shot, $0.029/sec (CHEAPEST)
+  - Kling 2.6 Pro — proven quality, $0.07/sec
+  - Veo 3 — Google's best, highest quality, $0.40/sec
+  - Veo 3.1 Fast — Google quality at lower cost, $0.10/sec
+  - MiniMax Video 01 — fast generation, $0.10/sec
+  - Wan 2.6 — open-source quality, $0.05/sec
+  - Seedance 1.5 — ByteDance, great motion, $0.05/sec
 
-Also supports OpenAI Sora 2 API directly.
+Also supports OpenAI Sora 2 API and Runway Gen-4 API directly.
 
 Usage:
   export FAL_KEY=your-fal-api-key        # Get from https://fal.ai/dashboard/keys
   python3 scripts/generate_reels.py       # Generate all 5 templates
   python3 scripts/generate_reels.py --template 1  # Generate specific template
   python3 scripts/generate_reels.py --provider sora --openai-key sk-...  # Use Sora
+  python3 scripts/generate_reels.py --provider runway --runway-key ...   # Use Runway
 
-Providers:
-  --provider kling26    Kling 2.6 Pro (default, cheapest)
-  --provider kling3     Kling 3.0 Pro (newest)
-  --provider veo3       Google Veo 3 (highest quality)
-  --provider minimax    MiniMax Video 01 Live
-  --provider sora       OpenAI Sora 2 (requires --openai-key)
+Providers (via fal.ai):
+  --provider kling3     Kling 3.0 Pro (default, cheapest, $0.029/sec)
+  --provider kling26    Kling 2.6 Pro ($0.07/sec)
+  --provider veo3       Google Veo 3 (highest quality, $0.40/sec)
+  --provider veo31fast  Google Veo 3.1 Fast ($0.10/sec)
+  --provider minimax    MiniMax Video 01 Live ($0.10/sec)
+  --provider wan26      Wan 2.6 (open-source, $0.05/sec)
+  --provider seedance   ByteDance Seedance 1.5 ($0.05/sec)
+
+Direct API providers:
+  --provider sora       OpenAI Sora 2 (requires --openai-key, $0.10/sec)
+  --provider runway     Runway Gen-4 Turbo (requires --runway-key)
 """
 
 import argparse
@@ -43,17 +52,17 @@ GENERATED_DIR.mkdir(exist_ok=True)
 
 # ── Provider configurations ──────────────────────────────────────────────────
 FAL_PROVIDERS = {
-    "kling26": {
-        "endpoint": "fal-ai/kling-video/v2.6/pro/text-to-video",
-        "name": "Kling 2.6 Pro",
-        "cost_per_sec": 0.07,
-        "max_duration": "10",
-        "supports_audio": True,
-    },
     "kling3": {
         "endpoint": "fal-ai/kling-video/v3/pro/text-to-video",
         "name": "Kling 3.0 Pro",
         "cost_per_sec": 0.029,
+        "max_duration": "10",
+        "supports_audio": True,
+    },
+    "kling26": {
+        "endpoint": "fal-ai/kling-video/v2.6/pro/text-to-video",
+        "name": "Kling 2.6 Pro",
+        "cost_per_sec": 0.07,
         "max_duration": "10",
         "supports_audio": True,
     },
@@ -64,11 +73,32 @@ FAL_PROVIDERS = {
         "max_duration": "8",
         "supports_audio": True,
     },
+    "veo31fast": {
+        "endpoint": "fal-ai/veo3/fast",
+        "name": "Google Veo 3.1 Fast",
+        "cost_per_sec": 0.10,
+        "max_duration": "8",
+        "supports_audio": False,
+    },
     "minimax": {
         "endpoint": "fal-ai/minimax/video-01-live",
         "name": "MiniMax Video 01 Live",
         "cost_per_sec": 0.10,
         "max_duration": "6",
+        "supports_audio": True,
+    },
+    "wan26": {
+        "endpoint": "fal-ai/wan/v2.6/text-to-video",
+        "name": "Wan 2.6 (Alibaba)",
+        "cost_per_sec": 0.05,
+        "max_duration": "10",
+        "supports_audio": False,
+    },
+    "seedance": {
+        "endpoint": "fal-ai/bytedance/seedance/v1.5/pro/text-to-video",
+        "name": "ByteDance Seedance 1.5",
+        "cost_per_sec": 0.05,
+        "max_duration": "10",
         "supports_audio": True,
     },
 }
@@ -320,6 +350,69 @@ def generate_with_sora(template: dict, api_key: str) -> dict:
     }
 
 
+def generate_with_runway(template: dict, api_key: str) -> dict:
+    """Generate a video using Runway Gen-4 Turbo API."""
+    import httpx
+
+    print(f"  Provider: Runway Gen-4 Turbo")
+    print(f"  Estimated cost: ~$0.31 per 5s clip")
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "X-Runway-Version": "2024-11-06",
+    }
+
+    payload = {
+        "model": "gen4_turbo",
+        "promptText": template["prompt"],
+        "duration": int(template["duration"]),
+        "ratio": "720:1280",  # 9:16 vertical
+    }
+
+    start = time.time()
+
+    resp = httpx.post(
+        "https://api.dev.runwayml.com/v1/text_to_video",
+        json=payload,
+        headers=headers,
+        timeout=30,
+    )
+    resp.raise_for_status()
+    task = resp.json()
+    task_id = task["id"]
+    print(f"  Task created: {task_id}")
+
+    # Poll for completion
+    for attempt in range(120):
+        time.sleep(5)
+        status_resp = httpx.get(
+            f"https://api.dev.runwayml.com/v1/tasks/{task_id}",
+            headers=headers,
+            timeout=30,
+        )
+        status_resp.raise_for_status()
+        status = status_resp.json()
+
+        if status.get("status") == "SUCCEEDED":
+            video_url = status.get("output", [None])[0]
+            print(f"  Video completed!")
+            elapsed = time.time() - start
+            return {
+                "result": {"video": {"url": video_url}},
+                "elapsed_seconds": elapsed,
+                "provider": "Runway Gen-4 Turbo",
+                "endpoint": "api.dev.runwayml.com",
+            }
+        elif status.get("status") == "FAILED":
+            raise RuntimeError(f"Runway generation failed: {status.get('failure', 'unknown')}")
+        else:
+            if attempt % 6 == 0:
+                print(f"    Status: {status.get('status', 'unknown')}...")
+
+    raise TimeoutError("Runway generation timed out after 10 minutes")
+
+
 def download_video(url: str, output_path: Path) -> None:
     """Download a video from URL to local file."""
     import httpx
@@ -338,11 +431,13 @@ def main():
     parser = argparse.ArgumentParser(description="Generate viral Instagram Reels with AI")
     parser.add_argument("--template", type=int, choices=[1, 2, 3, 4, 5],
                         help="Generate a specific template (1-5). Default: all")
-    parser.add_argument("--provider", default="kling26",
-                        choices=list(FAL_PROVIDERS.keys()) + ["sora"],
-                        help="Video generation provider (default: kling26)")
+    parser.add_argument("--provider", default="kling3",
+                        choices=list(FAL_PROVIDERS.keys()) + ["sora", "runway"],
+                        help="Video generation provider (default: kling3)")
     parser.add_argument("--openai-key", default=os.environ.get("OPENAI_API_KEY", ""),
                         help="OpenAI API key (required for --provider sora)")
+    parser.add_argument("--runway-key", default=os.environ.get("RUNWAYML_API_SECRET", ""),
+                        help="Runway API key (required for --provider runway)")
     parser.add_argument("--list", action="store_true",
                         help="List available templates and exit")
     args = parser.parse_args()
@@ -355,6 +450,15 @@ def main():
             print(f"      Duration: {t['duration']}s | Aspect: {t['aspect_ratio']}")
             print(f"      Viral mechanics: {', '.join(t['viral_mechanics'][:2])}")
             print()
+
+        print(f"\nAvailable Providers:")
+        print(f"{'─' * 70}")
+        print(f"  {'Provider':<12} {'Model':<28} {'Cost/sec':>10} {'API':<10}")
+        print(f"  {'─'*12} {'─'*28} {'─'*10} {'─'*10}")
+        for key, p in FAL_PROVIDERS.items():
+            print(f"  {key:<12} {p['name']:<28} ${p['cost_per_sec']:<9.3f} fal.ai")
+        print(f"  {'sora':<12} {'OpenAI Sora 2':<28} ${'0.100':<9} OpenAI")
+        print(f"  {'runway':<12} {'Runway Gen-4 Turbo':<28} ${'0.062':<9} Runway")
         return
 
     # Validate API keys
@@ -363,13 +467,23 @@ def main():
             print("ERROR: --openai-key required for Sora provider")
             print("  Usage: python3 scripts/generate_reels.py --provider sora --openai-key sk-...")
             sys.exit(1)
+    elif args.provider == "runway":
+        if not args.runway_key:
+            print("ERROR: --runway-key required for Runway provider")
+            print("  Usage: python3 scripts/generate_reels.py --provider runway --runway-key key-...")
+            sys.exit(1)
     else:
         fal_key = os.environ.get("FAL_KEY", "")
         if not fal_key:
             print("ERROR: Set FAL_KEY environment variable")
-            print("  1. Sign up at https://fal.ai (free)")
+            print("  1. Sign up at https://fal.ai (free signup, pay-per-use)")
             print("  2. Get API key from https://fal.ai/dashboard/keys")
             print("  3. export FAL_KEY=your-key-here")
+            print()
+            print("  Cost estimate for all 5 templates (5s each):")
+            for key, p in FAL_PROVIDERS.items():
+                total = p["cost_per_sec"] * 5 * 5
+                print(f"    {key:<12}: ${total:.2f} total ({p['name']})")
             sys.exit(1)
 
     # Select templates to generate
@@ -377,7 +491,8 @@ def main():
     if args.template:
         templates = [t for t in REEL_TEMPLATES if t["id"] == args.template]
 
-    provider_name = FAL_PROVIDERS.get(args.provider, {}).get("name", "OpenAI Sora 2")
+    direct_providers = {"sora": "OpenAI Sora 2", "runway": "Runway Gen-4 Turbo"}
+    provider_name = FAL_PROVIDERS.get(args.provider, {}).get("name", direct_providers.get(args.provider, args.provider))
 
     print(f"\n{'=' * 70}")
     print(f"  VIRAL REEL GENERATOR")
@@ -403,6 +518,18 @@ def main():
                 with open(output_path, "wb") as f:
                     f.write(gen_result["result"]["video_bytes"])
                 video_url = f"local://{output_path}"
+            elif args.provider == "runway":
+                gen_result = generate_with_runway(template, args.runway_key)
+                video_data = gen_result["result"]
+                video_url = video_data.get("video", {}).get("url", "")
+                output_path = GENERATED_DIR / f"reel_{template['id']}_{template['format']}.mp4"
+                if video_url and video_url.startswith("http"):
+                    download_video(video_url, output_path)
+                else:
+                    print(f"  WARNING: No video URL in Runway result.")
+                    output_path = GENERATED_DIR / f"reel_{template['id']}_{template['format']}_result.json"
+                    with open(output_path, "w") as f:
+                        json.dump(gen_result["result"], f, indent=2)
             else:
                 gen_result = generate_with_fal(template, args.provider)
                 # Download video from fal result
