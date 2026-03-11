@@ -4,5 +4,6 @@ venv/
 .pytest_cache/
 data/videos/
 data/results/
+data/cookies.txt
 *.egg-info/
 .env
