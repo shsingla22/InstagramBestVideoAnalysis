@@ -17,6 +17,9 @@ aiofiles>=24.1.0
 httpx>=0.28.0
 jinja2>=3.1.0
 
+# Article-to-Reel module
+beautifulsoup4>=4.12.0
+
 # Testing
 pytest>=8.3.0
 pytest-asyncio>=0.25.0
