@@ -1,0 +1,42 @@
+{
+  "Rule 1 - 1-Second Hook": {
+    "score": 5,
+    "issue": "First frame has text overlay but the visual is small (576px upscaled to 1080) \u2014 looks pixelated.",
+    "fix": "Need higher-resolution generation. The jukebox coin visual needs to be SHARP and cinematic."
+  },
+  "Rule 2 - Face Forward": {
+    "score": 3,
+    "issue": "No clear face in any frame. Zeroscope generates abstract/blurry faces.",
+    "fix": "Accept faceless format (caf\u00e9 racer/ASMR exception) but add more human-presence shots."
+  },
+  "Rule 3 - Narrative Arc": {
+    "score": 7,
+    "issue": "Three-scene structure (coin \u2192 race \u2192 legacy) is solid. But only 9 seconds \u2014 too short.",
+    "fix": "Need 6 scenes for 18 seconds: coin drop \u2192 caf\u00e9 \u2192 race \u2192 ton-up boys \u2192 modern bikes \u2192 Ace today"
+  },
+  "Rule 4 - Psychological Trigger": {
+    "score": 6,
+    "issue": "Curiosity gap is established by text but visuals don't deliver the 'awe' factor. Low-res diminishes impact.",
+    "fix": "Higher-res generation + more dramatic visuals (speed, chrome, leather close-ups)"
+  },
+  "Rule 5 - Engagement CTA": {
+    "score": 4,
+    "issue": "CTA text not on screen. Only informational text overlays present.",
+    "fix": "Add final frame with 'Would you have done the ton? Tag a rider who would'"
+  },
+  "Resolution Quality": {
+    "score": 2,
+    "issue": "576x320 upscaled to 1080x1920 \u2014 heavily pixelated. Unacceptable for Instagram.",
+    "fix": "Need native 720+ generation (Wan2.1 or wait for LTX/Veo quota reset)"
+  },
+  "Duration": {
+    "score": 4,
+    "issue": "Only 9 seconds. Need 15-18s minimum for the full story arc.",
+    "fix": "Generate 3 more scenes: caf\u00e9 interior, ton-up boys gathering, modern Ace Caf\u00e9"
+  },
+  "Pacing": {
+    "score": 5,
+    "issue": "All clips same length (3s). No speed variation. No visual rhythm.",
+    "fix": "Vary clip lengths: 2s hook \u2192 3s caf\u00e9 \u2192 4s race (slow build) \u2192 3s culture \u2192 3s legacy \u2192 3s CTA"
+  }
+}

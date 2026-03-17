@@ -1,0 +1,167 @@
+{
+  "scores": {
+    "Hook Strength": {
+      "score": 7,
+      "note": "Text hook is strong, visual hook is weak due to resolution"
+    },
+    "Face/Compelling Visual": {
+      "score": 4,
+      "note": "No faces. Visuals are interesting but pixelated"
+    },
+    "Narrative Arc": {
+      "score": 8,
+      "note": "Complete 6-scene arc: hook\u2192context\u2192action\u2192culture\u2192legacy\u2192CTA"
+    },
+    "Emotional Trigger": {
+      "score": 6,
+      "note": "Curiosity + awe intended, but low-res dampens impact"
+    },
+    "Completion Pull": {
+      "score": 7,
+      "note": "Text overlays create a story thread that pulls through"
+    },
+    "Share Impulse": {
+      "score": 7,
+      "note": "CTA is direct. Identity-signal sharing for bikers"
+    },
+    "Save Impulse": {
+      "score": 7,
+      "note": "Historical knowledge with cool factor"
+    },
+    "Mute Friendly": {
+      "score": 9,
+      "note": "Fully text-driven \u2014 works perfectly on mute"
+    },
+    "Text Hook Present": {
+      "score": 9,
+      "note": "Bold text in every frame"
+    },
+    "CTA Strength": {
+      "score": 8,
+      "note": "Provocative question + tag + brand. Well-designed"
+    },
+    "Resolution Quality": {
+      "score": 3,
+      "note": "576px upscaled \u2014 biggest weakness"
+    },
+    "Color Grading": {
+      "score": 5,
+      "note": "No warm amber grading applied. Raw generation colors"
+    },
+    "Pacing/Rhythm": {
+      "score": 5,
+      "note": "Uniform 3s clips \u2014 no speed variation"
+    }
+  },
+  "scenes": [
+    {
+      "name": "1. Jukebox Coin (HOOK)",
+      "time": "0-3s",
+      "target": "Chrome jukebox, coin drop, warm amber",
+      "strengths": [
+        "Has text hook",
+        "Curiosity gap established"
+      ],
+      "weaknesses": [
+        "Low-res upscaled (pixelated)",
+        "Motion may be unclear at 576px source"
+      ]
+    },
+    {
+      "name": "2. Caf\u00e9 Interior (CONTEXT)",
+      "time": "3-6s",
+      "target": "1950s London caf\u00e9, leather jackets, tungsten lighting",
+      "strengths": [
+        "Sets the scene",
+        "Text overlay provides context"
+      ],
+      "weaknesses": [
+        "Resolution quality",
+        "Zeroscope may not render period-accurate interiors"
+      ]
+    },
+    {
+      "name": "3. Motorcycle Race (ACTION)",
+      "time": "6-9s",
+      "target": "Speed, drama, night road, leather jacket rider",
+      "strengths": [
+        "Dynamic motion",
+        "Dramatic action scene"
+      ],
+      "weaknesses": [
+        "Low res makes speed less impactful",
+        "May need speed ramp effect"
+      ]
+    },
+    {
+      "name": "4. Doing the Ton (CULTURE)",
+      "time": "9-12s",
+      "target": "Speedometer at 100, intensity, chrome",
+      "strengths": [
+        "Gold 'DOING THE TON' text is bold",
+        "Builds narrative"
+      ],
+      "weaknesses": [
+        "Speedometer visual may not read clearly at low res"
+      ]
+    },
+    {
+      "name": "5. Modern Triumph (LEGACY)",
+      "time": "12-15s",
+      "target": "Beautiful modern caf\u00e9 racer, golden hour",
+      "strengths": [
+        "Emotional payoff \u2014 culture survived",
+        "Warm color grading"
+      ],
+      "weaknesses": [
+        "Transition from vintage to modern needs to feel impactful"
+      ]
+    },
+    {
+      "name": "6. CTA Frame",
+      "time": "15-18s",
+      "target": "Question + tag prompt + brand handle",
+      "strengths": [
+        "Clean, readable CTA",
+        "Gold accent on tag text",
+        "Brand handle"
+      ],
+      "weaknesses": [
+        "Static black frame \u2014 could use slow-moving background"
+      ]
+    }
+  ],
+  "fixes": [
+    [
+      "P0",
+      "Resolution",
+      "Apply AI upscaling or sharpen filter via ffmpeg to all clips"
+    ],
+    [
+      "P0",
+      "Color Grading",
+      "Apply warm amber/golden color LUT to all clips via ffmpeg"
+    ],
+    [
+      "P1",
+      "Pacing",
+      "Speed ramp: make race scene 1.5x, slow-mo the Triumph reveal"
+    ],
+    [
+      "P1",
+      "CTA Background",
+      "Add slow crossfade or subtle motion to CTA frame"
+    ],
+    [
+      "P2",
+      "Transitions",
+      "Add 0.5s crossfade between scenes instead of hard cuts"
+    ],
+    [
+      "P2",
+      "Vignette",
+      "Add dark vignette to all clips for cinematic feel"
+    ]
+  ],
+  "overall": 6.538461538461538
+}
