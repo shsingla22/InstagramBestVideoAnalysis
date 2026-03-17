@@ -1,0 +1,67 @@
+{
+  "Hook Strength": {
+    "v2": 7,
+    "v3": 8,
+    "note": "Text hook is strong + warm amber jukebox visual with vignette is more cinematic"
+  },
+  "Face/Compelling Visual": {
+    "v2": 4,
+    "v3": 5,
+    "note": "Still no faces (faceless format), but enhanced color grading + vignette make visuals much more compelling"
+  },
+  "Narrative Arc": {
+    "v2": 8,
+    "v3": 9,
+    "note": "6-scene arc with speed ramps creates better pacing. Slow Triumph reveal is emotionally effective"
+  },
+  "Emotional Trigger": {
+    "v2": 6,
+    "v3": 7,
+    "note": "Warm amber grading adds nostalgia layer. Speed ramp on race scene adds awe/excitement. Gold 'DOING THE TON' pops"
+  },
+  "Completion Pull": {
+    "v2": 7,
+    "v3": 8,
+    "note": "Fade transitions smooth the narrative flow. Varied pacing keeps attention through 19s"
+  },
+  "Share Impulse": {
+    "v2": 7,
+    "v3": 8,
+    "note": "CTA frame with dark amber background + gold text is visually striking. 'Would you have done THE TON?' provokes response"
+  },
+  "Save Impulse": {
+    "v2": 7,
+    "v3": 8,
+    "note": "Historical story with cinematic treatment = high save rate. Reference value for motorcycle culture"
+  },
+  "Mute Friendly": {
+    "v2": 9,
+    "v3": 9,
+    "note": "100% text-driven. Works perfectly without sound"
+  },
+  "Text Hook Present": {
+    "v2": 9,
+    "v3": 9,
+    "note": "Bold text with black stroke in every scene. Highly readable"
+  },
+  "CTA Strength": {
+    "v2": 8,
+    "v3": 9,
+    "note": "Upgraded CTA: dark amber bg, gold 'THE TON?', tag CTA, brand handle. Professional feel"
+  },
+  "Resolution Quality": {
+    "v2": 3,
+    "v3": 5,
+    "note": "Sharpening + contrast boost + vignette significantly reduce perceived pixelation. Still not native 720p+"
+  },
+  "Color Grading": {
+    "v2": 5,
+    "v3": 8,
+    "note": "Warm amber curves + saturation boost + contrast creates cohesive vintage cinematic feel across all scenes"
+  },
+  "Pacing/Rhythm": {
+    "v2": 5,
+    "v3": 7,
+    "note": "Speed ramps (1.3x race, 0.7x beauty) create visual rhythm. Fades smooth transitions"
+  }
+}

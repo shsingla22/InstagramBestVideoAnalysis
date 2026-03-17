@@ -1,0 +1,25 @@
+[Unit]
+Description=vLLM Qwen3-VL Video Inference Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/user/InstagramBestVideoAnalysis
+Environment="PATH=/home/user/InstagramBestVideoAnalysis/venv/bin:/usr/local/bin:/usr/bin"
+Environment="VLLM_PORT=8000"
+Environment="VLLM_GPU_MEMORY_UTIL=0.85"
+Environment="VLLM_MAX_MODEL_LEN=4096"
+ExecStart=/home/user/InstagramBestVideoAnalysis/scripts/start_vllm.sh
+Restart=on-failure
+RestartSec=15
+StandardOutput=journal
+StandardError=journal
+
+# Resource limits
+LimitNOFILE=65536
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target

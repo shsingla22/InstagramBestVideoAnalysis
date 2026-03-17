@@ -1,0 +1,20 @@
+[Unit]
+Description=Instagram Reel Analyzer Dashboard
+After=network-online.target vllm-qwen3vl.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/user/InstagramBestVideoAnalysis
+Environment="PATH=/home/user/InstagramBestVideoAnalysis/venv/bin:/usr/local/bin:/usr/bin"
+Environment="APP_HOST=0.0.0.0"
+Environment="APP_PORT=8080"
+ExecStart=/home/user/InstagramBestVideoAnalysis/scripts/start_app.sh
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
